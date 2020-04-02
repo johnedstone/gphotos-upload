@@ -1,4 +1,48 @@
-# gphotos-upload
+# gphotos-upload, forked
+__Original gphotos-upload Readme is further down below. New features of fork are listed here__
+
+* Using pathlib, upload.py is now compatible on Linux and Windows
+* On Windows, upload.py has been tested with Anaconda Powershell Prompt
+    * conda install git
+    * conda install google-auth-oauthlib
+* Since path name expansion with wildcards is not available on Windows,
+only filenames and/or a directories are acceptable, when using upload.py
+on Windows.
+An example would be `z:/path/to/file z:/path/to/dir`
+* On Linux, upload.py will take filenames directly or with path name expansion, and/or directories.
+An example would be `/path/to/file /path/to/* /path/to/dir`
+* upload.py does not recurse directories.
+This can be done by listing multiple directories, on both Linux and Windows.
+
+## Usage, revised
+
+```
+usage: upload.py [-h] [--auth  auth_file] -c CREDENTIALS [--album album_name] [--log log_file] [--dry-run] [photo [photo ...]]
+
+Upload photos to Google Photos.
+
+positional arguments:
+  photo                 List of filename(s) or directory(s) of photo(s) to upload. Linux: /file /* /, Windows (no wildcards): z:/path/file z:/path/dir
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --auth  auth_file     file for reading/storing user authentication tokens (not used/tested for this fork)
+  -c CREDENTIALS, --credentials CREDENTIALS
+                        Path to client_id.json. Examples - Linux: ~/path/file, Windows: c:/path/file
+  --album album_name    name of photo album to create (if it doesn't exist). Any uploaded photos will be added to this album.
+  --log log_file        name of output file for log messages
+  --dry-run             Prints photo file list and exits
+```
+
+### In progress
+
+* Selenium: webbrowser_selenium.py
+
+*Notes: SSL errors - http://allselenium.info/selfsigned-certificates-python-selenium/*
+
+# gphotos-upload, original
+__From: https://github.com/eshmu/gphotos-upload.git__
+
 Simple but flexible script to upload photos to Google Photos. Useful if you have photos in a directory structure that you want to reflect as Google Photos albums.
 
 ## Usage 

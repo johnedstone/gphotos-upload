@@ -5,41 +5,57 @@ import json
 import os.path
 import argparse
 import logging
+from pathlib import Path
+import sys
+import platform
+
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+now = datetime.now()
 
 def parse_args(arg_input=None):
     parser = argparse.ArgumentParser(description='Upload photos to Google Photos.')
     parser.add_argument('--auth ', metavar='auth_file', dest='auth_file',
-                    help='file for reading/storing user authentication tokens')
+                    help='file for reading/storing user authentication tokens (not used/tested for this fork)')
+    parser.add_argument('-c', '--credentials', required=True,
+                    help='Path to client_id.json. Examples - Linux: ~/path/file, Windows: c:/path/file')
     parser.add_argument('--album', metavar='album_name', dest='album_name',
                     help='name of photo album to create (if it doesn\'t exist). Any uploaded photos will be added to this album.')
     parser.add_argument('--log', metavar='log_file', dest='log_file',
                     help='name of output file for log messages')
     parser.add_argument('photos', metavar='photo',type=str, nargs='*',
-                    help='filename of a photo to upload')
+            help='List of filename(s) or directory(s) of photo(s) to upload. Linux: /file /* /, Windows (no wildcards): z:/path/file z:/path/dir')
+    parser.add_argument('--dry-run', action='store_true',
+                help='Prints photo file list and exits')
     return parser.parse_args(arg_input)
 
 
-def auth(scopes):
+def auth(scopes, credentials):
     flow = InstalledAppFlow.from_client_secrets_file(
-        'client_id.json',
+        credentials,
         scopes=scopes)
 
+    logging.debug('Starting local web server')
     credentials = flow.run_local_server(host='localhost',
                                         port=8080,
                                         authorization_prompt_message="",
                                         success_message='The auth flow is complete; you may close this window.',
                                         open_browser=True)
 
+    logging.debug('Shuting down local web server')
+
     return credentials
 
-def get_authorized_session(auth_token_file):
+def get_authorized_session(auth_token_file, credentials):
 
     scopes=['https://www.googleapis.com/auth/photoslibrary',
             'https://www.googleapis.com/auth/photoslibrary.sharing']
 
+    logging.debug('entering def get_auth')
     cred = None
 
     if auth_token_file:
+        logging.debug('is auth token file')
         try:
             cred = Credentials.from_authorized_user_file(auth_token_file, scopes)
         except OSError as err:
@@ -48,9 +64,13 @@ def get_authorized_session(auth_token_file):
             logging.debug("Error loading auth tokens - Incorrect format")
 
 
+    logging.debug('line 53')
     if not cred:
-        cred = auth(scopes)
+        logging.debug("cred: looking")
+        cred = auth(scopes, credentials)
+        logging.debug("cred: {}".format(cred))
 
+    logging.debug('line 56')
     session = AuthorizedSession(cred)
 
     if auth_token_file:
@@ -131,6 +151,7 @@ def create_or_retrieve_album(session, album_title):
 
 def upload_photos(session, photo_file_list, album_name):
 
+    number_added = 0
     album_id = create_or_retrieve_album(session, album_name) if album_name else None
 
     # interrupt upload if an upload was requested but could not be created
@@ -169,6 +190,7 @@ def upload_photos(session, photo_file_list, album_name):
                         logging.error("Could not add \'{0}\' to library -- {1}".format(os.path.basename(photo_file_name), status["message"]))
                     else:
                         logging.info("Added \'{}\' to library and album \'{}\' ".format(os.path.basename(photo_file_name), album_name))
+                        number_added += 1
                 else:
                     logging.error("Could not add \'{0}\' to library. Server Response -- {1}".format(os.path.basename(photo_file_name), resp))
 
@@ -182,6 +204,8 @@ def upload_photos(session, photo_file_list, album_name):
     except KeyError:
         pass
 
+    return number_added
+
 def main():
 
     args = parse_args()
@@ -191,9 +215,49 @@ def main():
                     filename=args.log_file,
                     level=logging.INFO)
 
-    session = get_authorized_session(args.auth_file)
+    logging.debug('args: {}'.format(args))
+    photo_file_list = []
+    photo_list = [Path(p) for p in args.photos]
+    try:
+        for p in photo_list:
+            if p.is_file():
+                photo_file_list.append(p)
+            elif p.is_dir():
+                photo_file_list.extend(
+                    [pp for pp in list(p.glob('*')) if pp.is_file()])
+            else:
+               logging.error('''
 
-    upload_photos(session, args.photos, args.album_name)
+This item is NOT a file or directory: {}
+Exiting ...
+'''.format(p,))
+               sys.exit()
+    except OSError as e:
+         logging.error('{}'.format(e))
+         logging.error('Exiting ...')
+         sys.exit()
+
+    photo_file_list = list(filter(None, photo_file_list))
+    # photo file list
+    s = '' 
+    for ea in photo_file_list:
+        s += '{}\n'.format(ea)
+
+    if args.dry_run:
+        print('''
+File list:
+{}:
+
+Number of files: {}        
+Exiting, dry-run'''.format(s.strip(), len(photo_file_list)))
+        sys.exit()
+        
+    logging.debug('photo_file_list: {}:'.format(photo_file_list))
+
+    session = get_authorized_session(args.auth_file, Path(args.credentials))
+    logging.debug("Session set up, now uploading ... ")
+
+    number_added = upload_photos(session, photo_file_list, args.album_name)
 
     # As a quick status check, dump the albums and their key attributes
 
@@ -202,5 +266,29 @@ def main():
     for a in getAlbums(session):
         print("{:<50} | {:>8} | {} ".format(a["title"],a.get("mediaItemsCount", "0"), str(a.get("isWriteable", False))))
 
+    return photo_file_list, number_added
+
 if __name__ == '__main__':
-  main()
+    photo_file_list = []
+    number_added = 0
+  
+    try:
+        photo_file_list, number_added = main()
+    except KeyboardInterrupt:
+        logging.error('''
+  
+          Keyboard interrupt : ) exiting
+  
+          ''')
+  
+    finally:
+  
+        end = datetime.now()
+        elapsed = relativedelta(end, now)
+        print("""
+Number of files added: {}
+Number of files attempted: {}
+Time elapsed: {} hours, {} minutes, {} seconds
+""".format(number_added, len(photo_file_list), elapsed.hours, elapsed.minutes, elapsed.seconds))
+  
+# vim: ai et ts=4 sw=4 sts=4 nu

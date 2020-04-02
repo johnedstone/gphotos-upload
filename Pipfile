@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 google-auth-oauthlib = "*"
+dateutils = "*"
 
 [dev-packages]
 
