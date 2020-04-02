@@ -1,0 +1,10 @@
+.pyc
+bin
+__pycache__
+*log
+*.png
+source.html
+venv
+client_id.json
+*swp
+Pipfile.lock
