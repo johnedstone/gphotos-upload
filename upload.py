@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 import sys
 import platform
+import io
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -149,7 +150,7 @@ def create_or_retrieve_album(session, album_title):
         logging.error("Could not find or create photo album '\{0}\'. Server Response: {1}".format(album_title, resp))
         return None
 
-def read_file(path, block_size=1024):
+def read_file(path, block_size=io.DEFAULT_BUFFER_SIZE):
     '''
     https://stackoverflow.com/questions/519633/lazy-method-for-reading-big-file-in-python
     https://docs.python.org/3/library/functions.html?#iter
