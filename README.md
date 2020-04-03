@@ -3,7 +3,7 @@ __Original gphotos-upload Readme is further down below. New features of fork are
 
 ## Current Issues
 * 02-Apr-2020: these files are being uploaded at the original size (per API documentation), and
-will be counted agains storage limits.  Go to settings -> recover and choose compress storage.
+will be counted agains storage limits.  Go to settings -> "recover storage" and choose compress storage.
 
 ## Fixed
 * 02-Apr-2020: noted OverflowError on Linux, with 2.5GB mp4, but not on Windows.
