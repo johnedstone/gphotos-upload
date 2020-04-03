@@ -191,7 +191,7 @@ def upload_photos(session, photo_file_list, album_name):
             try:
                 upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', photo_bytes)
             except OverflowError as e:
-                logging.info('''Overflow Error: {} Trying chunking'''.format(e))
+                logging.info('''OverflowError: {} Trying chunking'''.format(e))
                 upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', data=read_file(photo_file_name))
             except Exception as e:
                 logging.error("Even after chunking, could not upload file \'{0}\' -- {1}".format(photo_file_name, err))
