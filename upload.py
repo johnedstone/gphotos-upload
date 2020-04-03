@@ -268,7 +268,7 @@ Exiting ...
     if args.dry_run:
         print('''
 File list:
-{}:
+{}
 
 Number of files: {}        
 Exiting, dry-run'''.format(s.strip(), len(photo_file_list)))
