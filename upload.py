@@ -195,7 +195,7 @@ def upload_photos(session, photo_file_list, album_name):
                 logging.info('''OverflowError: {} Trying chunking'''.format(e))
                 upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', data=read_file(photo_file_name))
             except Exception as e:
-                logging.error("Even after chunking, could not upload file \'{0}\' -- {1}".format(photo_file_name, err))
+                logging.error("Even after chunking, could not upload file \'{0}\' -- {1}".format(photo_file_name, e))
                 continue
 
             if (upload_token.status_code == 200) and (upload_token.content):
