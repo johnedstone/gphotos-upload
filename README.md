@@ -2,9 +2,12 @@
 __Original gphotos-upload Readme is further down below. New features of fork are listed here__
 
 ## Current Issues
-* 02-Apr-2020: noted OverflowError on Linux, with 2.5GB mp4, but not on Windows. Investigating
 * 02-Apr-2020: these files are being uploaded at the original size (per API documentation), and
 will be counted agains storage limits.  Go to settings -> recover and choose compress storage.
+
+## Fixed
+* 02-Apr-2020: noted OverflowError on Linux, with 2.5GB mp4, but not on Windows.
+Implemented chunked data for requests.post()
 
 ## Features of this fork:
 * Using pathlib, upload.py is now compatible on Linux and Windows

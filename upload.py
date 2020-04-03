@@ -149,6 +149,20 @@ def create_or_retrieve_album(session, album_title):
         logging.error("Could not find or create photo album '\{0}\'. Server Response: {1}".format(album_title, resp))
         return None
 
+def read_file(path, block_size=1024):
+    '''
+    https://stackoverflow.com/questions/519633/lazy-method-for-reading-big-file-in-python
+    https://docs.python.org/3/library/functions.html?#iter
+    '''
+
+    with open(path, 'rb') as f:
+        while True:
+            piece = f.read(block_size)
+            if piece:
+                yield piece
+            else:
+                return
+
 def upload_photos(session, photo_file_list, album_name):
 
     number_added = 0
@@ -174,7 +188,14 @@ def upload_photos(session, photo_file_list, album_name):
 
             logging.info("Uploading photo -- \'{}\'".format(photo_file_name))
 
-            upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', photo_bytes)
+            try:
+                upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', photo_bytes)
+            except OverflowError as e:
+                logging.info('''Overflow Error: {} Trying chunking'''.format(e))
+                upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', data=read_file(photo_file_name))
+            except Exception as e:
+                logging.error("Even after chunking, could not upload file \'{0}\' -- {1}".format(photo_file_name, err))
+                continue
 
             if (upload_token.status_code == 200) and (upload_token.content):
 
