@@ -24,10 +24,12 @@ def parse_args(arg_input=None):
                     help='name of photo album to create (if it doesn\'t exist). Any uploaded photos will be added to this album.')
     parser.add_argument('--log', metavar='log_file', dest='log_file',
                     help='name of output file for log messages')
-    parser.add_argument('photos', metavar='photo',type=str, nargs='*',
-            help='List of filename(s) or directory(s) of photo(s) to upload. Linux: /file /* /, Windows (no wildcards): z:/path/file z:/path/dir')
     parser.add_argument('--dry-run', action='store_true',
                 help='Prints photo file list and exits')
+    parser.add_argument('-e', '--exclude', metavar='exclude',type=str, nargs='*',
+            help='List of extensions to exclude.  Example: --exclude .db .iso')
+    parser.add_argument('photos', metavar='photo',type=str, nargs='*',
+            help='List of filename(s) or directory(s) of photo(s) to upload. Linux: /file /* /, Windows (no wildcards): z:/path/file z:/path/dir')
     return parser.parse_args(arg_input)
 
 
@@ -228,6 +230,23 @@ def upload_photos(session, photo_file_list, album_name):
 
     return number_added
 
+def clean_file_list(photo_file_list, args):
+    if not args.exclude:
+        return list(filter(None, photo_file_list))
+
+    photo_file_list_clean = []
+    for p in photo_file_list:
+        add_to_clean = True
+        for ea in args.exclude:
+            if p.name.lower().endswith(ea.lower()):
+                add_to_clean = False
+                break
+
+        if add_to_clean:
+            photo_file_list_clean.append(p)
+
+    return list(filter(None, photo_file_list_clean))
+
 def main():
 
     args = parse_args()
@@ -259,7 +278,8 @@ Exiting ...
          logging.error('Exiting ...')
          sys.exit()
 
-    photo_file_list = list(filter(None, photo_file_list))
+    photo_file_list = clean_file_list(photo_file_list, args)
+
     # photo file list
     s = '' 
     for ea in photo_file_list:
