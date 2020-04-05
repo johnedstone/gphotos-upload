@@ -26,21 +26,31 @@ This can be done by listing multiple directories, on both Linux and Windows.
 ## Usage, revised
 
 ```
-usage: upload.py [-h] [--auth  auth_file] -c CREDENTIALS [--album album_name] [--log log_file] [--dry-run] [photo [photo ...]]
+usage: upload.py [-h] [--auth  auth_file] -c CREDENTIALS [--album album_name]
+                 [--log log_file] [--dry-run] [-e [exclude [exclude ...]]]
+                 [photo [photo ...]]
 
 Upload photos to Google Photos.
 
 positional arguments:
-  photo                 List of filename(s) or directory(s) of photo(s) to upload. Linux: /file /* /, Windows (no wildcards): z:/path/file z:/path/dir
+  photo                 List of filename(s) or directory(s) of photo(s) to
+                        upload. Linux: /file /* /, Windows (no wildcards):
+                        z:/path/file z:/path/dir
 
 optional arguments:
   -h, --help            show this help message and exit
-  --auth  auth_file     file for reading/storing user authentication tokens (not used/tested for this fork)
+  --auth  auth_file     file for reading/storing user authentication tokens
+                        (not used/tested for this fork)
   -c CREDENTIALS, --credentials CREDENTIALS
-                        Path to client_id.json. Examples - Linux: ~/path/file, Windows: c:/path/file
-  --album album_name    name of photo album to create (if it doesn't exist). Any uploaded photos will be added to this album.
+                        Path to client_id.json. Examples - Linux: ~/path/file,
+                        Windows: c:/path/file
+  --album album_name    name of photo album to create (if it doesn't exist).
+                        Any uploaded photos will be added to this album.
   --log log_file        name of output file for log messages
   --dry-run             Prints photo file list and exits
+  -e [exclude [exclude ...]], --exclude [exclude [exclude ...]]
+                        List of extensions to exclude. Example: --exclude .db
+                        .iso
 ```
 
 ### In progress
