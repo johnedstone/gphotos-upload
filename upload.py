@@ -28,6 +28,8 @@ def parse_args(arg_input=None):
                     help='name of output file for log messages')
     parser.add_argument('--dry-run', action='store_true',
                 help='Prints photo file list and exits')
+    parser.add_argument('--no-recurse', action='store_true',
+                 help='Linux: stop (globbing) directory recursion')
     parser.add_argument('-e', '--exclude', metavar='exclude',type=str, nargs='*',
             help='List of extensions to exclude.  Example: --exclude .db .iso')
     parser.add_argument('photos', metavar='photo',type=str, nargs='*',
@@ -264,10 +266,12 @@ def main():
     try:
         for p in photo_list:
             if p.is_file():
-                photo_file_list.append(p)
+                if p not in photo_file_list:
+                    photo_file_list.append(p)
             elif p.is_dir():
-                photo_file_list.extend(
-                    [pp for pp in list(p.glob('*')) if pp.is_file()])
+                if not args.no_recurse:
+                    photo_file_list.extend(
+                        [pp for pp in list(p.glob('*')) if pp.is_file() if pp not in photo_file_list])
             else:
                logging.error('''
 
