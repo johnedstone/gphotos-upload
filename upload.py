@@ -14,6 +14,8 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 now = datetime.now()
 
+LOG_LEVEL = logging.INFO
+
 def parse_args(arg_input=None):
     parser = argparse.ArgumentParser(description='Upload photos to Google Photos.')
     parser.add_argument('--auth ', metavar='auth_file', dest='auth_file',
@@ -254,7 +256,7 @@ def main():
     logging.basicConfig(format='%(asctime)s %(module)s.%(funcName)s:%(levelname)s:%(message)s',
                     datefmt='%m/%d/%Y %I_%M_%S %p',
                     filename=args.log_file,
-                    level=logging.INFO)
+                    level=LOG_LEVEL)
 
     logging.debug('args: {}'.format(args))
     photo_file_list = []

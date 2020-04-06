@@ -5,6 +5,11 @@ __Original gphotos-upload Readme is further down below. New features of fork are
 * 02-Apr-2020: these files are being uploaded at the original size (per API documentation), and
 will be counted agains storage limits.  Go to settings -> "recover storage" and choose compress storage.
 
+### To do
+
+* Check if file exists, so time is not lost uploading
+* Selenium: webbrowser_selenium.py *Notes: SSL errors - http://allselenium.info/selfsigned-certificates-python-selenium/*
+
 ## Fixed
 * 02-Apr-2020: noted OverflowError on Linux, with 2.5GB mp4, but not on Windows.
 Implemented chunked data for requests.post()
@@ -20,8 +25,9 @@ on Windows.
 An example would be `z:/path/to/file z:/path/to/dir`
 * On Linux, upload.py will take filenames directly or with path name expansion, and/or directories.
 An example would be `/path/to/file /path/to/* /path/to/dir`
-* upload.py does not recurse directories.
+* upload.py does not recurse directories on Windows.  Linux will recurse one level.  Need to make this consistent
 This can be done by listing multiple directories, on both Linux and Windows.
+* added --dry-run --credentials, --exclude
 
 ## Usage, revised
 
@@ -52,12 +58,6 @@ optional arguments:
                         List of extensions to exclude. Example: --exclude .db
                         .iso
 ```
-
-### In progress
-
-* Selenium: webbrowser_selenium.py
-
-*Notes: SSL errors - http://allselenium.info/selfsigned-certificates-python-selenium/*
 
 # gphotos-upload, original
 __From: https://github.com/eshmu/gphotos-upload.git__
