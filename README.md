@@ -33,7 +33,8 @@ This can be done by listing multiple directories, on both Linux and Windows.
 
 ```
 usage: upload.py [-h] [--auth  auth_file] -c CREDENTIALS [--album album_name]
-                 [--log log_file] [--dry-run] [-e [exclude [exclude ...]]]
+                 [--log log_file] [--dry-run] [--no-recurse]
+                 [-e [exclude [exclude ...]]]
                  [photo [photo ...]]
 
 Upload photos to Google Photos.
@@ -54,6 +55,7 @@ optional arguments:
                         Any uploaded photos will be added to this album.
   --log log_file        name of output file for log messages
   --dry-run             Prints photo file list and exits
+  --no-recurse          Linux: stop (globbing) directory recursion
   -e [exclude [exclude ...]], --exclude [exclude [exclude ...]]
                         List of extensions to exclude. Example: --exclude .db
                         .iso
