@@ -251,6 +251,46 @@ def clean_file_list(photo_file_list, args):
 
     return list(filter(None, photo_file_list_clean))
 
+def format_file_list(file_list):
+        s = '' 
+        for ea in file_list:
+            s += '{}\n'.format(ea)
+
+        return s.strip()
+
+def recurse_dirs(p, args, photo_file_list=[]):
+    list_dir = list(p.glob('**/*'))
+    if not args.no_recurse:
+        photo_file_list.extend(
+            [pp for pp in list_dir if pp.is_file() if pp not in photo_file_list])
+
+#        for ea in list_dir:
+#            if ea.is_dir():
+#                logging.debug('This is a directory: {}'.format(ea))
+#                photo_file_list = recurse_dirs(p, args, photo_file_list)
+
+#        l = [x for x in p.glob('*')]
+#        logging.warning('''
+#p.glob(*):{}
+#        {}
+#        '''.format(len(l), format_file_list(l)))
+#
+#        l = [x for x in p.glob('**')]
+#        logging.warning('''
+#p.glob(**):{}
+#        {}
+#        '''.format(len(l), format_file_list(l)))
+#
+#        l = [x for x in p.iterdir()]
+#        logging.warning('''
+#p.iterdir():{}
+#        {}
+#        '''.format(len(l), format_file_list(l)))
+
+        #recursed_list = recurse_dirs
+
+    return photo_file_list 
+
 def main():
 
     args = parse_args()
@@ -269,9 +309,11 @@ def main():
                 if p not in photo_file_list:
                     photo_file_list.append(p)
             elif p.is_dir():
-                if not args.no_recurse:
-                    photo_file_list.extend(
-                        [pp for pp in list(p.glob('*')) if pp.is_file() if pp not in photo_file_list])
+                photo_file_list = recurse_dirs(p, args, photo_file_list)
+                #photo_file_list.extend(recursed_list)
+                #if not args.no_recurse:
+                #    photo_file_list.extend(
+                #        [pp for pp in list(p.glob('*')) if pp.is_file() if pp not in photo_file_list])
             else:
                logging.error('''
 
@@ -286,18 +328,13 @@ Exiting ...
 
     photo_file_list = clean_file_list(photo_file_list, args)
 
-    # photo file list
-    s = '' 
-    for ea in photo_file_list:
-        s += '{}\n'.format(ea)
-
     if args.dry_run:
         print('''
 File list:
 {}
 
 Number of files: {}        
-Exiting, dry-run'''.format(s.strip(), len(photo_file_list)))
+Exiting, dry-run'''.format(format_file_list(photo_file_list), len(photo_file_list)))
         sys.exit()
         
     logging.debug('photo_file_list: {}:'.format(photo_file_list))
