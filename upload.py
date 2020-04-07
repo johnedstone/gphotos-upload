@@ -28,8 +28,9 @@ def parse_args(arg_input=None):
                     help='name of output file for log messages')
     parser.add_argument('--dry-run', action='store_true',
                 help='Prints photo file list and exits')
-    parser.add_argument('--no-recurse', action='store_true',
-                 help='Linux: stop (globbing) directory recursion')
+    parser.add_argument('--recurse', dest='recurse', default='once',
+                 choices=['none', 'once', 'all'],
+                 help='Default: once')
     parser.add_argument('-e', '--exclude', metavar='exclude',type=str, nargs='*',
             help='List of extensions to exclude.  Example: --exclude .db .iso')
     parser.add_argument('photos', metavar='photo',type=str, nargs='*',
@@ -259,8 +260,10 @@ def format_file_list(file_list):
         return s.strip()
 
 def recurse_dirs(p, args, photo_file_list=[]):
+    logging.info('recurse: {}'.format(args.recurse))
+    return photo_file_list
     list_dir = list(p.glob('**/*'))
-    if not args.no_recurse:
+    if not args.recurse:
         photo_file_list.extend(
             [pp for pp in list_dir if pp.is_file() if pp not in photo_file_list])
 
@@ -311,7 +314,7 @@ def main():
             elif p.is_dir():
                 photo_file_list = recurse_dirs(p, args, photo_file_list)
                 #photo_file_list.extend(recursed_list)
-                #if not args.no_recurse:
+                #if not args.recurse:
                 #    photo_file_list.extend(
                 #        [pp for pp in list(p.glob('*')) if pp.is_file() if pp not in photo_file_list])
             else:
