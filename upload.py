@@ -17,11 +17,11 @@ now = datetime.now()
 LOG_LEVEL = logging.INFO
 
 def parse_args(arg_input=None):
-    parser = argparse.ArgumentParser(description='Upload photos to Google Photos.')
+    parser = argparse.ArgumentParser(description='Upload photos and videos to Google Photos.')
     parser.add_argument('--auth ', metavar='auth_file', dest='auth_file',
-                    help='Optional: used to storing refresh tokens, and ...')
+                    help='Optional: used to store tokens and credentials, such as the refresh token')
     parser.add_argument('-c', '--credentials', required=True,
-                    help='Path to client_id.json. Examples - Linux: ~/path/file, Windows: c:/path/file')
+                    help='Path to client_id.json. Examples - Linux: ~/path/file, Windows: c:/path/file or forward slashes appear to work')
     parser.add_argument('--album', metavar='album_name', dest='album_name',
                     help='Name of photo album to create (if it doesn\'t exist). Any uploaded photos will be added to this album.')
     parser.add_argument('--log', metavar='log_file', dest='log_file',
@@ -34,7 +34,7 @@ def parse_args(arg_input=None):
     parser.add_argument('-e', '--exclude', metavar='exclude',type=str, nargs='*',
             help='List of extensions to exclude.  Example: --exclude .db .iso')
     parser.add_argument('photos', metavar='photo',type=str, nargs='*',
-            help='List of filenames or directories of photos/videos to upload. Remember, Windows handle such things as /*')
+            help='List of filenames or directories of photos and videos to upload. Remember: Windows does not handle wildcards such as /*')
     return parser.parse_args(arg_input)
 
 

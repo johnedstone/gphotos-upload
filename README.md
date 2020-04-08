@@ -18,16 +18,15 @@ Implemented chunked data for requests.post()
 
 ## Features of this fork:
 * Using pathlib, upload.py is now compatible on Linux and Windows
+* added --dry-run --credentials, --exclude, --recurse
 * On Windows, upload.py has been tested with Anaconda Powershell Prompt
     * conda install git
     * conda install google-auth-oauthlib
 * Since path name expansion with wildcards is not available on Windows,
 only filenames and/or a directories are acceptable, when using upload.py
-on Windows.
-An example would be `z:/path/to/file z:/path/to/dir`
+on Windows.  An example would be `z:/path/to/file z:/path/to/dir or z:\path\to\somewhere`
 * On Linux, upload.py will take filenames directly or with path name expansion, and/or directories.
 An example would be `/path/to/file /path/to/* /path/to/dir`
-* added --dry-run --credentials, --exclude, --recurse
 
 ## Usage, revised
 
@@ -37,18 +36,21 @@ usage: upload.py [-h] [--auth  auth_file] -c CREDENTIALS [--album album_name]
                  [-e [exclude [exclude ...]]]
                  [photo [photo ...]]
 
-Upload photos/videos to Google Photos.
+Upload photos and videos to Google Photos.
 
 positional arguments:
-  photo                 List of filenames or directories of photos/videos to
-                        upload. Remember, Windows handle such things as /*
+  photo                 List of filenames or directories of photos and videos
+                        to upload. Remember: Windows does not handle wildcards
+                        such as /*
 
 optional arguments:
   -h, --help            show this help message and exit
-  --auth  auth_file     Optional: used to storing refresh tokens, and ...
+  --auth  auth_file     Optional: used to store tokens and credentials, such
+                        as the refresh token
   -c CREDENTIALS, --credentials CREDENTIALS
                         Path to client_id.json. Examples - Linux: ~/path/file,
-                        Windows: c:/path/file
+                        Windows: c:/path/file or forward slashes appear to
+                        work
   --album album_name    Name of photo album to create (if it doesn't exist).
                         Any uploaded photos will be added to this album.
   --log log_file        Name of output file for log messages
