@@ -3,11 +3,13 @@ __Original gphotos-upload Readme is further down below. New features of fork are
 
 ## Current Issues
 * 02-Apr-2020: these files are being uploaded at the original size (per API documentation), and
-will be counted agains storage limits.  Go to settings -> "recover storage" and choose compress storage.
+will be counted agains storage limits.  To remdiate, go to settings -> "recover storage" and choose compress storage, after uploading.
 
 ### To do
 
-* Check if file exists, so time is not lost uploading
+* Check if file exists, so time is not lost uploading. This may be hard to do,
+as Google does not return any checksum to you of the original photo.
+
 * Selenium: webbrowser_selenium.py *Notes: SSL errors - http://allselenium.info/selfsigned-certificates-python-selenium/*
 
 ## Fixed
@@ -25,37 +27,34 @@ on Windows.
 An example would be `z:/path/to/file z:/path/to/dir`
 * On Linux, upload.py will take filenames directly or with path name expansion, and/or directories.
 An example would be `/path/to/file /path/to/* /path/to/dir`
-* upload.py does not recurse directories on Windows.  Linux will recurse one level.  Need to make this consistent
-This can be done by listing multiple directories, on both Linux and Windows.
-* added --dry-run --credentials, --exclude
+* added --dry-run --credentials, --exclude, --recurse
 
 ## Usage, revised
 
 ```
 usage: upload.py [-h] [--auth  auth_file] -c CREDENTIALS [--album album_name]
-                 [--log log_file] [--dry-run] [--no-recurse]
+                 [--log log_file] [--dry-run] [--recurse {none,once,all}]
                  [-e [exclude [exclude ...]]]
                  [photo [photo ...]]
 
-Upload photos to Google Photos.
+Upload photos/videos to Google Photos.
 
 positional arguments:
-  photo                 List of filename(s) or directory(s) of photo(s) to
-                        upload. Linux: /file /* /, Windows (no wildcards):
-                        z:/path/file z:/path/dir
+  photo                 List of filenames or directories of photos/videos to
+                        upload. Remember, Windows handle such things as /*
 
 optional arguments:
   -h, --help            show this help message and exit
-  --auth  auth_file     file for reading/storing user authentication tokens
-                        (not used/tested for this fork)
+  --auth  auth_file     Optional: used to storing refresh tokens, and ...
   -c CREDENTIALS, --credentials CREDENTIALS
                         Path to client_id.json. Examples - Linux: ~/path/file,
                         Windows: c:/path/file
-  --album album_name    name of photo album to create (if it doesn't exist).
+  --album album_name    Name of photo album to create (if it doesn't exist).
                         Any uploaded photos will be added to this album.
-  --log log_file        name of output file for log messages
+  --log log_file        Name of output file for log messages
   --dry-run             Prints photo file list and exits
-  --no-recurse          Linux: stop (globbing) directory recursion
+  --recurse {none,once,all}
+                        Default: once
   -e [exclude [exclude ...]], --exclude [exclude [exclude ...]]
                         List of extensions to exclude. Example: --exclude .db
                         .iso

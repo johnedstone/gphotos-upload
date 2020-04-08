@@ -19,13 +19,13 @@ LOG_LEVEL = logging.INFO
 def parse_args(arg_input=None):
     parser = argparse.ArgumentParser(description='Upload photos to Google Photos.')
     parser.add_argument('--auth ', metavar='auth_file', dest='auth_file',
-                    help='file for reading/storing user authentication tokens (not used/tested for this fork)')
+                    help='Optional: used to storing refresh tokens, and ...')
     parser.add_argument('-c', '--credentials', required=True,
                     help='Path to client_id.json. Examples - Linux: ~/path/file, Windows: c:/path/file')
     parser.add_argument('--album', metavar='album_name', dest='album_name',
-                    help='name of photo album to create (if it doesn\'t exist). Any uploaded photos will be added to this album.')
+                    help='Name of photo album to create (if it doesn\'t exist). Any uploaded photos will be added to this album.')
     parser.add_argument('--log', metavar='log_file', dest='log_file',
-                    help='name of output file for log messages')
+                    help='Name of output file for log messages')
     parser.add_argument('--dry-run', action='store_true',
                 help='Prints photo file list and exits')
     parser.add_argument('--recurse', dest='recurse', default='once',
@@ -34,7 +34,7 @@ def parse_args(arg_input=None):
     parser.add_argument('-e', '--exclude', metavar='exclude',type=str, nargs='*',
             help='List of extensions to exclude.  Example: --exclude .db .iso')
     parser.add_argument('photos', metavar='photo',type=str, nargs='*',
-            help='List of filename(s) or directory(s) of photo(s) to upload. Linux: /file /* /, Windows (no wildcards): z:/path/file z:/path/dir')
+            help='List of filenames or directories of photos/videos to upload. Remember, Windows handle such things as /*')
     return parser.parse_args(arg_input)
 
 
@@ -260,37 +260,16 @@ def format_file_list(file_list):
         return s.strip()
 
 def recurse_dirs(p, args, photo_file_list=[]):
-    logging.info('recurse: {}'.format(args.recurse))
-    return photo_file_list
-    list_dir = list(p.glob('**/*'))
-    if not args.recurse:
-        photo_file_list.extend(
-            [pp for pp in list_dir if pp.is_file() if pp not in photo_file_list])
+    logging.debug('recurse: {}'.format(args.recurse))
+    if args.recurse == 'none':
+        return photo_file_list
+    if args.recurse == 'once':
+        list_dir = list(p.glob('*/*'))
+    if args.recurse == 'all':
+        list_dir = list(p.glob('**/*'))
 
-#        for ea in list_dir:
-#            if ea.is_dir():
-#                logging.debug('This is a directory: {}'.format(ea))
-#                photo_file_list = recurse_dirs(p, args, photo_file_list)
-
-#        l = [x for x in p.glob('*')]
-#        logging.warning('''
-#p.glob(*):{}
-#        {}
-#        '''.format(len(l), format_file_list(l)))
-#
-#        l = [x for x in p.glob('**')]
-#        logging.warning('''
-#p.glob(**):{}
-#        {}
-#        '''.format(len(l), format_file_list(l)))
-#
-#        l = [x for x in p.iterdir()]
-#        logging.warning('''
-#p.iterdir():{}
-#        {}
-#        '''.format(len(l), format_file_list(l)))
-
-        #recursed_list = recurse_dirs
+    photo_file_list.extend(
+        [pp for pp in list_dir if pp.is_file() if pp not in photo_file_list])
 
     return photo_file_list 
 
