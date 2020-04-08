@@ -261,10 +261,13 @@ def format_file_list(file_list):
 
 def recurse_dirs(p, args, photo_file_list=[]):
     logging.debug('recurse: {}'.format(args.recurse))
+    logging.debug('args: {}'.format(args))
+    logging.debug('p: {}'.format(p))
     if args.recurse == 'none':
         return photo_file_list
     if args.recurse == 'once':
-        list_dir = list(p.glob('*/*'))
+        list_dir = list(p.glob('*'))
+        logging.debug('list_dir: {}'.format(list_dir))
     if args.recurse == 'all':
         list_dir = list(p.glob('**/*'))
 
