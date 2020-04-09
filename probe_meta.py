@@ -104,11 +104,20 @@ def main():
                 with open(p, 'rb') as fh:
                     image = Image(fh)
                 
-                ts = image.get('datetime', '')
-                logging.debug('ts {}: {}'.format(p, ts))
-                kind = filetype.guess('{}'.format(p))
-                logging.debug(kind.mime)
+                # Deal with image on disk
+                ts = ''
+                if image.has_exif:
+                    ts = image.get('datetime', '')
 
+                # Add stat_cmtime
+                image.stat_cmtime = 'sometime'
+
+                logging.info('p:{}, ts:{}, cmtime:{}'.format(p, ts, image.stat_cmtime))
+
+                kind = filetype.guess('{}'.format(p))
+                logging.info(kind.mime)
+
+                # Deal with image on google photos
                 session = get_authorized_session(args.auth_file, Path(args.credentials),
                         scopes=['https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata'])
         
@@ -121,11 +130,14 @@ def main():
                     
                         for mi in media_items:
                             if mi.filename == p.name:
-                                logging.debug('1: Found {}'.format(p))
+                                logging.info('1: Found name match {}'.format(p))
                                 if kind.mime == mi.mimetype:
-                                    logging.debug('2: Found {}'.format(p))
-                                    if mi.media_metadata_creation_time.strip('Z').replace('-', ':').replace('T', ' ') == image.get('datetime', ''):
+                                    logging.info('2: Found mimetype match{}'.format(p))
+                                    if mi.media_metadata_creation_time.strip('Z').replace('-', ':').replace('T', ' ') == ts:
                                         logging.info('3: Found {} in album'.format(p))
+                                    else:
+                                        logging.info('More detail: {}'.format(mi))
+                                        logging.info('More detail: {}'.format(mi.media_metadata_creation_time))
 
 
             except Exception as e:
