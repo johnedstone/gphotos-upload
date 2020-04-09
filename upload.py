@@ -54,10 +54,11 @@ def auth(scopes, credentials):
 
     return credentials
 
-def get_authorized_session(auth_token_file, credentials):
+def get_authorized_session(auth_token_file, credentials,
+        scopes=['https://www.googleapis.com/auth/photoslibrary',
+                'https://www.googleapis.com/auth/photoslibrary.sharing']):
 
-    scopes=['https://www.googleapis.com/auth/photoslibrary',
-            'https://www.googleapis.com/auth/photoslibrary.sharing']
+    logging.debug('scopes: {}'.format(scopes))
 
     logging.debug('entering def get_auth')
     cred = None
