@@ -31,6 +31,21 @@ class Media:
     def __repr__(self):
         return '{}'.format(self.filename)
 
+class MediaOnDisk:
+
+    def __init__(self, path_obj):
+        self.path_obj = path_obj
+        self.exif_datetime = ''
+        mime_type = ''
+
+    def __repr__(self):
+        return '{}'.format(self.path_obj.name)
+
+    @property
+    def st_ctime(self):
+        return 'boohoo'
+
+
 def get_albums(session):
     albums = [] 
     session.headers["Content-type"] = "application/json"
@@ -98,24 +113,29 @@ def main():
 
     else:
         if args.photos:
-            p = Path(args.photos[0])
-            logging.debug('{}'.format(p.name))
+            media_on_disk = MediaOnDisk(Path(args.photos[0]))
+            
+            logging.info('Path of media on disk: {}'.format(media_on_disk.path_obj))
             try:
-                with open(p, 'rb') as fh:
+                with open(media_on_disk.path_obj, 'rb') as fh:
                     image = Image(fh)
                 
                 # Deal with image on disk
-                ts = ''
                 if image.has_exif:
-                    ts = image.get('datetime', '')
+                    media_on_disk.exif_datetime = image.get('datetime', '')
+
+                kind = filetype.guess('{}'.format(media_on_disk.path_obj))
+                logging.debug(kind.mime)
+                media_on_disk.mime_type = kind.mime
+                logging.info(media_on_disk.mime_type)
 
                 # Add stat_cmtime
-                image.stat_cmtime = 'sometime'
+                # It would appear that on the image, if it has exif.datetime, that is used for creation time
+                # Othewise, it uses the time of uploading for creation time.
+                # Storing as GMT time in google, but somehow being transposed ??
+                #image.stat_cmtime = 'sometime'
 
-                logging.info('p:{}, ts:{}, cmtime:{}'.format(p, ts, image.stat_cmtime))
-
-                kind = filetype.guess('{}'.format(p))
-                logging.info(kind.mime)
+                logging.info('media_on_disk:{}, exif_datetime:{}, st_ctime:{}'.format(media_on_disk, media_on_disk.exif_datetime, media_on_disk.st_ctime))
 
                 # Deal with image on google photos
                 session = get_authorized_session(args.auth_file, Path(args.credentials),
@@ -129,16 +149,17 @@ def main():
                         logging.debug('{}'.format([(x.filename, x.mimetype, x.media_metadata_creation_time) for x in media_items]))
                     
                         for mi in media_items:
-                            if mi.filename == p.name:
-                                logging.info('1: Found name match {}'.format(p))
+                            if mi.filename == media_on_disk.path_obj.name:
+                                logging.info('1: Found name match {}'.format(media_on_disk))
                                 if kind.mime == mi.mimetype:
-                                    logging.info('2: Found mimetype match{}'.format(p))
-                                    if mi.media_metadata_creation_time.strip('Z').replace('-', ':').replace('T', ' ') == ts:
+                                    logging.info('2: Found mimetype (media on disk) match: {}'.format(media_on_disk.mime_type))
+                                    if mi.media_metadata_creation_time.strip('Z').replace('-', ':').replace('T', ' ') == media_on_disk.exif_datetime:
                                         logging.info('3: Found {} in album'.format(p))
+                                        logging.info('More detail from google resp: {}'.format(mi.media_metadata_creation_time))
                                     else:
-                                        logging.info('More detail: {}'.format(mi))
-                                        logging.info('More detail: {}'.format(mi.media_metadata_creation_time))
-
+                                        logging.info('Timestamp not matching More detail from google resp: {}'.format(mi))
+                                        logging.info('Timestamp from google: {}'.format(mi.media_metadata_creation_time))
+                                        logging.info('Timestamp (exif) from media on disk: {}'.format(media_on_disk.exif_datetime))
 
             except Exception as e:
                 logging.error('{}'.format(e))
