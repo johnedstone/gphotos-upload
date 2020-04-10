@@ -39,10 +39,15 @@ usage: probe_meta.py [-h] [--auth  auth_file] -c CREDENTIALS
                      [-e [exclude [exclude ...]]] [-m minutes]
                      [photo [photo ...]]
 
-Upload photos and videos to Google Photos. Working on updating st_atime, at
-time of upload, to help with timestamp comparison. That is, when a file is
-uploaded, the access time will be updated. Note however, the google timestamp,
-if no exif, will remain the time of the first upload
+Upload photos and videos to Google Photos.
+
+    Working on updating st_atime, at time of upload, to help with timestamp comparison.
+    That is, when a file is uploaded, the access time will be updated.
+
+    Note however, the google timestamp, if no exif, will remain the time of the first upload
+
+    NAS, even ro, seem to update st_atime.  This program, also updates st_atime (and st_ctime)
+    upon a successful upload and placement into an album
 
 positional arguments:
   photo                 List of filenames or directories of photos and videos

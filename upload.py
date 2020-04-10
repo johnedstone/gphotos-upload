@@ -6,6 +6,7 @@ import os.path
 from pathlib import Path
 import platform
 import sys
+import textwrap
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import AuthorizedSession
@@ -18,10 +19,20 @@ now = datetime.now()
 LOG_LEVEL = logging.INFO
 
 def parse_args(arg_input=None):
-    parser = argparse.ArgumentParser(description='Upload photos and videos to Google Photos. '
-            'Working on updating st_atime, at time of upload, to help with timestamp comparison.'
-            '  That is, when a file is uploaded, the access time will be updated.  Note however, '
-            'the google timestamp, if no exif, will remain the time of the first upload')
+    parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description=textwrap.dedent('''\
+    Upload photos and videos to Google Photos.
+
+        Working on updating st_atime, at time of upload, to help with timestamp comparison.
+        That is, when a file is uploaded, the access time will be updated.
+        
+        Note however, the google timestamp, if no exif, will remain the time of the first upload
+        
+        NAS, even ro, seem to update st_atime.  This program, also updates st_atime (and st_ctime)
+        upon a successful upload and placement into an album
+           ''')) 
+
     parser.add_argument('--auth ', metavar='auth_file', dest='auth_file',
                     help='Optional: used to store tokens and credentials, such as the refresh token')
     parser.add_argument('-c', '--credentials', required=True,
