@@ -8,6 +8,7 @@ google-auth-oauthlib = "*"
 dateutils = "*"
 exif = "*"
 filetype = "*"
+arrow = "*"
 
 [dev-packages]
 

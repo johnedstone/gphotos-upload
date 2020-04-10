@@ -33,8 +33,14 @@ def parse_args(arg_input=None):
                  help='Default: once')
     parser.add_argument('-e', '--exclude', metavar='exclude',type=str, nargs='*',
             help='List of extensions to exclude.  Example: --exclude .db .iso')
+    parser.add_argument('-m', '--min', metavar='minutes',type=int, dest='minutes',
+            default=0,
+            help='Number of minutes in timestamp (st_atime) difference to accept, '
+            'if filename, album, mimetype match, but exif.datetime does not exist, '
+            'when deciding to upload again. Default: 0')
     parser.add_argument('photos', metavar='photo',type=str, nargs='*',
             help='List of filenames or directories of photos and videos to upload. Remember: Windows does not handle wildcards such as /*')
+
     return parser.parse_args(arg_input)
 
 
@@ -56,7 +62,8 @@ def auth(scopes, credentials):
 
 def get_authorized_session(auth_token_file, credentials,
         scopes=['https://www.googleapis.com/auth/photoslibrary',
-                'https://www.googleapis.com/auth/photoslibrary.sharing']):
+                'https://www.googleapis.com/auth/photoslibrary.sharing',
+                'https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata']):
 
     logging.debug('scopes: {}'.format(scopes))
 
