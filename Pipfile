@@ -9,6 +9,7 @@ dateutils = "*"
 exif = "*"
 filetype = "*"
 arrow = "*"
+pillow = "*"
 
 [dev-packages]
 

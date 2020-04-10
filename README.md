@@ -18,10 +18,11 @@ Implemented chunked data for requests.post()
 
 ## Features of this fork:
 * Using pathlib, upload.py is now compatible on Linux and Windows
-* added --dry-run --credentials, --exclude, --recurse
+* added --dry-run --credentials, --exclude, --recurse, --min
 * On Windows, upload.py has been tested with Anaconda Powershell Prompt
     * conda install git
     * conda install google-auth-oauthlib
+    * conda install arrow
 * Since path name expansion with wildcards is not available on Windows,
 only filenames and/or a directories are acceptable, when using upload.py
 on Windows.  An example would be `z:/path/to/file z:/path/to/dir or z:\path\to\somewhere`
@@ -31,12 +32,14 @@ An example would be `/path/to/file /path/to/* /path/to/dir`
 ## Usage, revised
 
 ```
-usage: upload.py [-h] [--auth  auth_file] -c CREDENTIALS [--album album_name]
-                 [--log log_file] [--dry-run] [--recurse {none,once,all}]
-                 [-e [exclude [exclude ...]]]
-                 [photo [photo ...]]
+usage: probe_meta.py [-h] [--auth  auth_file] -c CREDENTIALS
+                     [--album album_name] [--log log_file] [--dry-run]
+                     [--recurse {none,once,all}] [-e [exclude [exclude ...]]]
+                     [-m minutes]
+                     [photo [photo ...]]
 
-Upload photos and videos to Google Photos.
+Upload photos and videos to Google Photos. Working on updating st_atime to
+help track
 
 positional arguments:
   photo                 List of filenames or directories of photos and videos
@@ -60,6 +63,11 @@ optional arguments:
   -e [exclude [exclude ...]], --exclude [exclude [exclude ...]]
                         List of extensions to exclude. Example: --exclude .db
                         .iso
+  -m minutes, --min minutes
+                        Number of minutes in timestamp (st_atime) difference
+                        to accept, if filename, album, mimetype match, but
+                        exif.datetime does not exist, when deciding to upload
+                        again. Default: 0
 ```
 
 # gphotos-upload, original

@@ -7,7 +7,8 @@ import logging
 from pathlib import Path
 
 import arrow
-from exif import Image
+from PIL import Image
+from PIL.ExifTags import TAGS
 import filetype
 from upload import parse_args, get_authorized_session
 
@@ -94,7 +95,18 @@ class MediaOnDisk:
 
         return r
         
+def get_labeled_exif(exif):
+    labeled = {}
+    for (key, val) in exif.items():
+        labeled[TAGS.get(key)] = val
 
+    return labeled
+
+def get_exif(filename):
+    image = Image.open(filename)
+    image.verify()
+
+    return image._getexif()
 
 def get_albums(session):
     '''Need to fix this, and just get the album needed'''
@@ -154,12 +166,10 @@ def compare_media(args):
         logging.debug(media_on_disk.mime_type)
 
         if media_on_disk.mime_type.lower() not in VIDEO_MIMES:
-            with open(media_on_disk.path_obj, 'rb') as fh:
-                image = Image(fh)
-        
-            # Deal with image on disk
-            if image.has_exif:
-                media_on_disk.exif_datetime = image.get('datetime', '')
+            exif = get_exif(media_on_disk.path_obj)
+            if exif:
+                labeled = get_labeled_exif(exif)
+                media_on_disk.exif_datetime = labeled.get('DateTime', '')
                 logging.debug(media_on_disk.exif_datetime)
 
 
