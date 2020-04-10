@@ -1,14 +1,15 @@
+import argparse
+import io
+import json
+import logging
+import os.path
+from pathlib import Path
+import platform
+import sys
+
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import AuthorizedSession
 from google.oauth2.credentials import Credentials
-import json
-import os.path
-import argparse
-import logging
-from pathlib import Path
-import sys
-import platform
-import io
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -17,7 +18,7 @@ now = datetime.now()
 LOG_LEVEL = logging.INFO
 
 def parse_args(arg_input=None):
-    parser = argparse.ArgumentParser(description='Upload photos and videos to Google Photos.')
+    parser = argparse.ArgumentParser(description='Upload photos and videos to Google Photos. Working on updating st_atime to help track')
     parser.add_argument('--auth ', metavar='auth_file', dest='auth_file',
                     help='Optional: used to store tokens and credentials, such as the refresh token')
     parser.add_argument('-c', '--credentials', required=True,
@@ -228,6 +229,16 @@ def upload_photos(session, photo_file_list, album_name):
                     else:
                         logging.info("Added \'{}\' to library and album \'{}\' ".format(os.path.basename(photo_file_name), album_name))
                         number_added += 1
+                        # Linux: let's try explicitly changing access (and change) time, but not modify time
+                        try:
+                            linux_fn = photo_file_name.name
+                            logging.info('linux_fn: {}'.format(linux_fn))
+                            fn_stat = os.stat(linux_fn)
+                            os.utime(linux_fn, (datetime.now().timestamp(), fn_stat.st_mtime))
+                        except Exception as e:
+                            logging.info('Setting access time error: {}'.format(e))
+                        finally:
+                            pass
                 else:
                     logging.error("Could not add \'{0}\' to library. Server Response -- {1}".format(os.path.basename(photo_file_name), resp))
 
