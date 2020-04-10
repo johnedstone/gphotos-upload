@@ -18,7 +18,10 @@ now = datetime.now()
 LOG_LEVEL = logging.INFO
 
 def parse_args(arg_input=None):
-    parser = argparse.ArgumentParser(description='Upload photos and videos to Google Photos. Working on updating st_atime to help track')
+    parser = argparse.ArgumentParser(description='Upload photos and videos to Google Photos. '
+            'Working on updating st_atime, at time of upload, to help with timestamp comparison.'
+            '  That is, when a file is uploaded, the access time will be updated.  Note however, '
+            'the google timestamp, if no exif, will remain the time of the first upload')
     parser.add_argument('--auth ', metavar='auth_file', dest='auth_file',
                     help='Optional: used to store tokens and credentials, such as the refresh token')
     parser.add_argument('-c', '--credentials', required=True,
@@ -29,6 +32,8 @@ def parse_args(arg_input=None):
                     help='Name of output file for log messages')
     parser.add_argument('--dry-run', action='store_true',
                 help='Prints photo file list and exits')
+    parser.add_argument('--dry-run-plus', action='store_true',
+                help='Prints photo file list and checks to see if files would be updated, so --min adjustments can be made')
     parser.add_argument('--recurse', dest='recurse', default='once',
                  choices=['none', 'once', 'all'],
                  help='Default: once')

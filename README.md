@@ -18,11 +18,12 @@ Implemented chunked data for requests.post()
 
 ## Features of this fork:
 * Using pathlib, upload.py is now compatible on Linux and Windows
-* added --dry-run --credentials, --exclude, --recurse, --min
+* added --dry-run --credentials, --exclude, --recurse, --min, --dry-run-plus
 * On Windows, upload.py has been tested with Anaconda Powershell Prompt
     * conda install git
     * conda install google-auth-oauthlib
     * conda install arrow
+    * conda install -c conda-forge filetype
 * Since path name expansion with wildcards is not available on Windows,
 only filenames and/or a directories are acceptable, when using upload.py
 on Windows.  An example would be `z:/path/to/file z:/path/to/dir or z:\path\to\somewhere`
@@ -34,12 +35,14 @@ An example would be `/path/to/file /path/to/* /path/to/dir`
 ```
 usage: probe_meta.py [-h] [--auth  auth_file] -c CREDENTIALS
                      [--album album_name] [--log log_file] [--dry-run]
-                     [--recurse {none,once,all}] [-e [exclude [exclude ...]]]
-                     [-m minutes]
+                     [--dry-run-plus] [--recurse {none,once,all}]
+                     [-e [exclude [exclude ...]]] [-m minutes]
                      [photo [photo ...]]
 
-Upload photos and videos to Google Photos. Working on updating st_atime to
-help track
+Upload photos and videos to Google Photos. Working on updating st_atime, at
+time of upload, to help with timestamp comparison. That is, when a file is
+uploaded, the access time will be updated. Note however, the google timestamp,
+if no exif, will remain the time of the first upload
 
 positional arguments:
   photo                 List of filenames or directories of photos and videos
@@ -58,6 +61,8 @@ optional arguments:
                         Any uploaded photos will be added to this album.
   --log log_file        Name of output file for log messages
   --dry-run             Prints photo file list and exits
+  --dry-run-plus        Prints photo file list and checks to see if files
+                        would be updated, so --min adjustments can be made
   --recurse {none,once,all}
                         Default: once
   -e [exclude [exclude ...]], --exclude [exclude [exclude ...]]
