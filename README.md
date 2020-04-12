@@ -24,6 +24,7 @@ Implemented chunked data for requests.post()
     * conda install google-auth-oauthlib
     * conda install arrow
     * conda install -c conda-forge filetype
+    * conda install filetype
 * Since path name expansion with wildcards is not available on Windows,
 only filenames and/or a directories are acceptable, when using upload.py
 on Windows.  An example would be `z:/path/to/file z:/path/to/dir or z:\path\to\somewhere`
@@ -60,7 +61,7 @@ optional arguments:
                         as the refresh token
   -c CREDENTIALS, --credentials CREDENTIALS
                         Path to client_id.json. Examples - Linux: ~/path/file,
-                        Windows: c:/path/file or forward slashes appear to
+                        Windows: z:\path\file or z:\path\file appear to
                         work
   --album album_name    Name of photo album to create (if it doesn't exist).
                         Any uploaded photos will be added to this album.
