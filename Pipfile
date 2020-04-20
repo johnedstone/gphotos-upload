@@ -6,12 +6,7 @@ name = "pypi"
 [packages]
 google-auth-oauthlib = "*"
 dateutils = "*"
-exif = "*"
-filetype = "*"
 arrow = "*"
 pillow = "*"
 
 [dev-packages]
-
-[requires]
-python_version = "3.7"

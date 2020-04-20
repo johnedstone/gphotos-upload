@@ -27,58 +27,52 @@ Implemented chunked data for requests.post()
     * conda install filetype
 * Since path name expansion with wildcards is not available on Windows,
 only filenames and/or a directories are acceptable, when using upload.py
-on Windows.  An example would be `z:/path/to/file z:/path/to/dir or z:\path\to\somewhere`
+on Windows.  An example would be `z:/path/to/file z:/path/to/dir`
 * On Linux, upload.py will take filenames directly or with path name expansion, and/or directories.
 An example would be `/path/to/file /path/to/* /path/to/dir`
 
 ## Usage, revised
 
 ```
-usage: probe_meta.py [-h] [--auth  auth_file] -c CREDENTIALS
-                     [--album album_name] [--log log_file] [--dry-run]
-                     [--dry-run-plus] [--recurse {none,once,all}]
-                     [-e [exclude [exclude ...]]] [-m minutes]
-                     [photo [photo ...]]
+usage: upload.py [-h] [--auth  auth_file] -c CREDENTIALS [--album album_name] [--log log_file] [--dry-run] [--dry-run-plus] [--debug] [--recurse {none,once,all}] [-e [exclude [exclude ...]]]
+                 [-m minutes]
+                 [photo [photo ...]]
 
 Upload photos and videos to Google Photos.
 
+    Windows paths should be like this: 'z:/path/to/some/file_or_dir'
+    No wildcards like 'z:/path/*' in Windows.
+    Use quotes, to prevent Windows from mangling, in most cases
+
     Working on updating st_atime, at time of upload, to help with timestamp comparison.
     That is, when a file is uploaded, the access time will be updated.
+    This will be used when exif not available, as google uses the st_atime for it's
+    creation time when exif is not available.
 
-    Note however, the google timestamp, if no exif, will remain the time of the first upload
-
-    NAS, even ro, seem to update st_atime.  This program, also updates st_atime (and st_ctime)
-    upon a successful upload and placement into an album
+    On NAS, even ro, seem to update st_atime, when uploading.  This program, will  update st_atime (and st_ctime)
+    upon a successful upload and placement into an album, to help figure out with google if an item
+    needs to be sync'd.
 
 positional arguments:
-  photo                 List of filenames or directories of photos and videos
-                        to upload. Remember: Windows does not handle wildcards
-                        such as /*
+  photo                 List of filenames or directories of photos and videos to upload. Quote Windows path, to be safe: 'z:/path/to/file'. Note: Windows does not handle wildcards such as
+                        'z:/path/to/*', use files or dirs for Windows
 
 optional arguments:
   -h, --help            show this help message and exit
-  --auth  auth_file     Optional: used to store tokens and credentials, such
-                        as the refresh token
+  --auth  auth_file     Optional: used to store tokens and credentials, such as the refresh token
   -c CREDENTIALS, --credentials CREDENTIALS
-                        Path to client_id.json. Examples - Linux: ~/path/file,
-                        Windows: z:\path\file or z:\path\file appear to
-                        work
-  --album album_name    Name of photo album to create (if it doesn't exist).
-                        Any uploaded photos will be added to this album.
+                        Path to client_id.json.
+  --album album_name    Name of photo album to create (if it doesn't exist). Any uploaded photos will be added to this album.
   --log log_file        Name of output file for log messages
   --dry-run             Prints photo file list and exits
-  --dry-run-plus        Prints photo file list and checks to see if files
-                        would be updated, so --min adjustments can be made
+  --dry-run-plus        Prints photo file list and checks to see if files would be updated, so --min adjustments can be made
+  --debug               turn on debug logging
   --recurse {none,once,all}
                         Default: once
   -e [exclude [exclude ...]], --exclude [exclude [exclude ...]]
-                        List of extensions to exclude. Example: --exclude .db
-                        .iso
+                        List of extensions to exclude. Example: --exclude .db .iso
   -m minutes, --min minutes
-                        Number of minutes in timestamp (st_atime) difference
-                        to accept, if filename, album, mimetype match, but
-                        exif.datetime does not exist, when deciding to upload
-                        again. Default: 0
+                        Number of minutes in timestamp (st_atime) difference to accept, if filename, album, mimetype match, but exif.datetime does not exist, when deciding to upload again. Default: 0
 ```
 
 # gphotos-upload, original

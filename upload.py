@@ -2,7 +2,6 @@ import argparse
 import io
 import json
 import logging
-import os.path
 from pathlib import Path
 import platform
 import sys
@@ -16,27 +15,31 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 now = datetime.now()
 
-LOG_LEVEL = logging.INFO
-
 def parse_args(arg_input=None):
     parser = argparse.ArgumentParser(
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description=textwrap.dedent('''\
     Upload photos and videos to Google Photos.
 
+        Windows paths should be like this: 'z:/path/to/some/file_or_dir'
+        No wildcards like 'z:/path/*' in Windows.
+        Use quotes, to prevent Windows from mangling, in most cases
+
         Working on updating st_atime, at time of upload, to help with timestamp comparison.
         That is, when a file is uploaded, the access time will be updated.
+        This will be used when exif not available, as google uses the st_atime for it's
+        creation time when exif is not available.
         
-        Note however, the google timestamp, if no exif, will remain the time of the first upload
-        
-        NAS, even ro, seem to update st_atime.  This program, also updates st_atime (and st_ctime)
-        upon a successful upload and placement into an album
+        On NAS, even ro, seem to update st_atime, when uploading.  This program, will  update st_atime (and st_ctime)
+        upon a successful upload and placement into an album, to help figure out with google if an item
+        needs to be sync'd.
+
            ''')) 
 
     parser.add_argument('--auth ', metavar='auth_file', dest='auth_file',
                     help='Optional: used to store tokens and credentials, such as the refresh token')
     parser.add_argument('-c', '--credentials', required=True,
-                    help='Path to client_id.json. Examples - Linux: ~/path/file, Windows: c:/path/file or forward slashes appear to work')
+                    help='Path to client_id.json.')
     parser.add_argument('--album', metavar='album_name', dest='album_name',
                     help='Name of photo album to create (if it doesn\'t exist). Any uploaded photos will be added to this album.')
     parser.add_argument('--log', metavar='log_file', dest='log_file',
@@ -45,6 +48,8 @@ def parse_args(arg_input=None):
                 help='Prints photo file list and exits')
     parser.add_argument('--dry-run-plus', action='store_true',
                 help='Prints photo file list and checks to see if files would be updated, so --min adjustments can be made')
+    parser.add_argument('--debug', dest='log_level', action='store_true',
+                help='turn on debug logging')
     parser.add_argument('--recurse', dest='recurse', default='once',
                  choices=['none', 'once', 'all'],
                  help='Default: once')
@@ -56,7 +61,9 @@ def parse_args(arg_input=None):
             'if filename, album, mimetype match, but exif.datetime does not exist, '
             'when deciding to upload again. Default: 0')
     parser.add_argument('photos', metavar='photo',type=str, nargs='*',
-            help='List of filenames or directories of photos and videos to upload. Remember: Windows does not handle wildcards such as /*')
+            help='List of filenames or directories of photos and videos to upload. '
+                "Quote Windows path, to be safe: 'z:/path/to/file'.  "
+                "Note: Windows does not handle wildcards such as 'z:/path/to/*', use files or dirs for Windows")
 
     return parser.parse_args(arg_input)
 
@@ -217,7 +224,7 @@ def upload_photos(session, photo_file_list, album_name):
                 logging.error("Could not read file \'{0}\' -- {1}".format(photo_file_name, err))
                 continue
 
-            session.headers["X-Goog-Upload-File-Name"] = os.path.basename(photo_file_name)
+            session.headers["X-Goog-Upload-File-Name"] = photo_file_name.name
 
             logging.info("Uploading photo -- \'{}\'".format(photo_file_name))
 
@@ -227,7 +234,10 @@ def upload_photos(session, photo_file_list, album_name):
                 logging.info('''OverflowError: {} Trying chunking'''.format(e))
                 upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', data=read_file(photo_file_name))
             except Exception as e:
-                logging.error("Even after chunking, could not upload file \'{0}\' -- {1}".format(photo_file_name, e))
+                logging.info('''Maybe a timout error: {} Trying chunking'''.format(e))
+                upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', data=read_file(photo_file_name))
+            except Exception as e:
+                logging.error("Even after chunking, could not upload file {}: {}".format(photo_file_name, e))
                 continue
 
             if (upload_token.status_code == 200) and (upload_token.content):
@@ -241,9 +251,9 @@ def upload_photos(session, photo_file_list, album_name):
                 if "newMediaItemResults" in resp:
                     status = resp["newMediaItemResults"][0]["status"]
                     if status.get("code") and (status.get("code") > 0):
-                        logging.error("Could not add \'{0}\' to library -- {1}".format(os.path.basename(photo_file_name), status["message"]))
+                        logging.error("Could not add \'{0}\' to library -- {1}".format(photo_file_name.name, status["message"]))
                     else:
-                        logging.info("Added \'{}\' to library and album \'{}\' ".format(os.path.basename(photo_file_name), album_name))
+                        logging.info("Added \'{}\' to library and album \'{}\' ".format(photo_file_name.name, album_name))
                         number_added += 1
                         # Linux: let's try explicitly changing access (and change) time, but not modify time
                         try:
@@ -256,10 +266,10 @@ def upload_photos(session, photo_file_list, album_name):
                         finally:
                             pass
                 else:
-                    logging.error("Could not add \'{0}\' to library. Server Response -- {1}".format(os.path.basename(photo_file_name), resp))
+                    logging.error("Could not add \'{0}\' to library. Server Response -- {1}".format(photo_file_name.name, resp))
 
             else:
-                logging.error("Could not upload \'{0}\'. Server Response - {1}".format(os.path.basename(photo_file_name), upload_token))
+                logging.error("Could not upload \'{0}\'. Server Response - {1}".format(photo_file_name.name, upload_token))
 
     try:
         del(session.headers["Content-type"])
@@ -314,6 +324,11 @@ def recurse_dirs(p, args, photo_file_list=[]):
 def main():
 
     args = parse_args()
+
+    LOG_LEVEL = logging.INFO
+    if args.log_level:
+        LOG_LEVEL = logging.DEBUG
+
 
     logging.basicConfig(format='%(asctime)s %(module)s.%(funcName)s:%(levelname)s:%(message)s',
                     datefmt='%m/%d/%Y %I_%M_%S %p',
