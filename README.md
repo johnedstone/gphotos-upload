@@ -72,7 +72,8 @@ optional arguments:
   -e [exclude [exclude ...]], --exclude [exclude [exclude ...]]
                         List of extensions to exclude. Example: --exclude .db .iso
   -m minutes, --min minutes
-                        Number of minutes in timestamp (st_atime) difference to accept, if filename, album, mimetype match, but exif.datetime does not exist, when deciding to upload again. Default: 0
+                        Not completely implemented yet. Developing. Number of minutes in timestamp (st_atime) difference to accept, if filename, album, mimetype match, but exif.datetime does not exist,
+                        when deciding to upload again. Default: 0
 ```
 
 # gphotos-upload, original

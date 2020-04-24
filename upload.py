@@ -58,7 +58,7 @@ def parse_args(arg_input=None):
             help='List of extensions to exclude.  Example: --exclude .db .iso')
     parser.add_argument('-m', '--min', metavar='minutes',type=int, dest='minutes',
             default=0,
-            help='Number of minutes in timestamp (st_atime) difference to accept, '
+            help='Not completely implemented yet. Developing. Number of minutes in timestamp (st_atime) difference to accept, '
             'if filename, album, mimetype match, but exif.datetime does not exist, '
             'when deciding to upload again. Default: 0')
     parser.add_argument('photos', metavar='photo',type=str, nargs='*',
@@ -347,10 +347,6 @@ def main():
                     photo_file_list.append(p)
             elif p.is_dir():
                 photo_file_list = recurse_dirs(p, args, photo_file_list)
-                #photo_file_list.extend(recursed_list)
-                #if not args.recurse:
-                #    photo_file_list.extend(
-                #        [pp for pp in list(p.glob('*')) if pp.is_file() if pp not in photo_file_list])
             else:
                logging.error('''
 
