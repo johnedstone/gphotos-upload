@@ -38,7 +38,7 @@ usage: upload.py [-h] [--auth  auth_file] -c CREDENTIALS [--album album_name] [-
                  [-m minutes]
                  [photo [photo ...]]
 
-Upload photos and videos to Google Photos.
+Upload photos and videos to Google Photos. And, add to an album created by this API.
 
     Windows paths should be like this: 'z:/path/to/some/file_or_dir'
     No wildcards like 'z:/path/*' in Windows.
@@ -65,7 +65,7 @@ optional arguments:
   --album album_name    Name of photo album to create (if it doesn't exist). Any uploaded photos will be added to this album.
   --log log_file        Name of output file for log messages
   --dry-run             Prints photo file list and exits
-  --dry-run-plus        Prints photo file list and checks to see if files would be updated, so --min adjustments can be made
+  --dry-run-plus        Not implemented, yet. Prints photo file list and checks to see if files would be updated, so --min adjustments can be made
   --debug               turn on debug logging
   --recurse {none,once,all}
                         Default: once

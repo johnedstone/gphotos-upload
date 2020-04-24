@@ -2,6 +2,7 @@ import argparse
 import io
 import json
 import logging
+import os
 from pathlib import Path
 import platform
 import sys
@@ -19,7 +20,7 @@ def parse_args(arg_input=None):
     parser = argparse.ArgumentParser(
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description=textwrap.dedent('''\
-    Upload photos and videos to Google Photos.
+    Upload photos and videos to Google Photos. And, add to an album created by this API.
 
         Windows paths should be like this: 'z:/path/to/some/file_or_dir'
         No wildcards like 'z:/path/*' in Windows.
@@ -47,7 +48,7 @@ def parse_args(arg_input=None):
     parser.add_argument('--dry-run', action='store_true',
                 help='Prints photo file list and exits')
     parser.add_argument('--dry-run-plus', action='store_true',
-                help='Prints photo file list and checks to see if files would be updated, so --min adjustments can be made')
+                help='Not implemented, yet. Prints photo file list and checks to see if files would be updated, so --min adjustments can be made')
     parser.add_argument('--debug', dest='log_level', action='store_true',
                 help='turn on debug logging')
     parser.add_argument('--recurse', dest='recurse', default='once',
@@ -256,11 +257,12 @@ def upload_photos(session, photo_file_list, album_name):
                         logging.info("Added \'{}\' to library and album \'{}\' ".format(photo_file_name.name, album_name))
                         number_added += 1
                         # Linux: let's try explicitly changing access (and change) time, but not modify time
+                        # Not sure how to implement this on Windows
                         try:
-                            linux_fn = photo_file_name.name
-                            logging.info('linux_fn: {}'.format(linux_fn))
-                            fn_stat = os.stat(linux_fn)
-                            os.utime(linux_fn, (datetime.now().timestamp(), fn_stat.st_mtime))
+                            fn_stat = os.stat(photo_file_name)
+                            logging.debug('stat before {}'.format(fn_stat))
+                            os.utime(photo_file_name, (datetime.now().timestamp(), fn_stat.st_mtime))
+                            logging.debug('stat after {}'.format(os.stat(photo_file_name)))
                         except Exception as e:
                             logging.info('Setting access time error: {}'.format(e))
                         finally:
