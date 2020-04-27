@@ -16,17 +16,21 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 now = datetime.now()
 
+import probe_meta
+
 def parse_args(arg_input=None):
     parser = argparse.ArgumentParser(
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description=textwrap.dedent('''\
     Upload photos and videos to Google Photos. And, add to an album created by this API.
 
+        To do: fix for when the number of Alums > 50
+
         Windows paths should be like this: 'z:/path/to/some/file_or_dir'
         No wildcards like 'z:/path/*' in Windows.
         Use quotes, to prevent Windows from mangling, in most cases
 
-        Working on updating st_atime, at time of upload, to help with timestamp comparison.
+        Note: st_atime is updated, at the time of upload, to help with timestamp comparison.
         That is, when a file is uploaded, the access time will be updated.
         This will be used when exif not available, as google uses the st_atime for it's
         creation time when exif is not available.
@@ -41,14 +45,16 @@ def parse_args(arg_input=None):
                     help='Optional: used to store tokens and credentials, such as the refresh token')
     parser.add_argument('-c', '--credentials', required=True,
                     help='Path to client_id.json.')
-    parser.add_argument('--album', metavar='album_name', dest='album_name',
-                    help='Name of photo album to create (if it doesn\'t exist). Any uploaded photos will be added to this album.')
+    parser.add_argument('--album', metavar='album_name', dest='album_name', required=True,
+                    help='Required.  Name of photo album to create (if it doesn\'t exist). Any uploaded photos will be added to this album.')
     parser.add_argument('--log', metavar='log_file', dest='log_file',
                     help='Name of output file for log messages')
+    parser.add_argument('--tz', metavar='time_zone', dest='tz', default='Europe/London',
+                    help='If you suspect your exif timestamp is lacking a time zone, you can give it here, e.g. America/New_York.  The default is Europe/London')
     parser.add_argument('--dry-run', action='store_true',
                 help='Prints photo file list and exits')
-    parser.add_argument('--dry-run-plus', action='store_true',
-                help='Not implemented, yet. Prints photo file list and checks to see if files would be updated, so --min adjustments can be made')
+    parser.add_argument('--test-stat-times', action='store_true', dest='stat_times',
+                help='Prints photo file list and checks to see if files would be updated based on timestamp, so --min adjustments can be made')
     parser.add_argument('--debug', dest='log_level', action='store_true',
                 help='turn on debug logging')
     parser.add_argument('--recurse', dest='recurse', default='once',
@@ -58,9 +64,9 @@ def parse_args(arg_input=None):
             help='List of extensions to exclude.  Example: --exclude .db .iso')
     parser.add_argument('-m', '--min', metavar='minutes',type=int, dest='minutes',
             default=0,
-            help='Not completely implemented yet. Developing. Number of minutes in timestamp (st_atime) difference to accept, '
-            'if filename, album, mimetype match, but exif.datetime does not exist, '
-            'when deciding to upload again. Default: 0')
+            help='Number of minutes in timestamp (st_atime) difference to accept as a match. '
+            'That is, if filename, album, mimetype match, but exif.datetime does not exist, or is not a match '
+            'then compare st_atime. Default: 0')
     parser.add_argument('photos', metavar='photo',type=str, nargs='*',
             help='List of filenames or directories of photos and videos to upload. '
                 "Quote Windows path, to be safe: 'z:/path/to/file'.  "
@@ -204,7 +210,7 @@ def read_file(path, block_size=io.DEFAULT_BUFFER_SIZE):
             else:
                 return
 
-def upload_photos(session, photo_file_list, album_name):
+def upload_photos(session, photo_file_list, album_name, args):
 
     number_added = 0
     album_id = create_or_retrieve_album(session, album_name) if album_name else None
@@ -216,6 +222,7 @@ def upload_photos(session, photo_file_list, album_name):
     session.headers["Content-type"] = "application/octet-stream"
     session.headers["X-Goog-Upload-Protocol"] = "raw"
 
+    albums_for_loop = getAlbums(session,True)
     for photo_file_name in photo_file_list:
 
             try:
@@ -227,51 +234,58 @@ def upload_photos(session, photo_file_list, album_name):
 
             session.headers["X-Goog-Upload-File-Name"] = photo_file_name.name
 
-            logging.info("Uploading photo -- \'{}\'".format(photo_file_name))
-
-            try:
-                upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', photo_bytes)
-            except OverflowError as e:
-                logging.info('''OverflowError: {} Trying chunking'''.format(e))
-                upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', data=read_file(photo_file_name))
-            except Exception as e:
-                logging.info('''Maybe a timout error: {} Trying chunking'''.format(e))
-                upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', data=read_file(photo_file_name))
-            except Exception as e:
-                logging.error("Even after chunking, could not upload file {}: {}".format(photo_file_name, e))
-                continue
-
-            if (upload_token.status_code == 200) and (upload_token.content):
-
-                create_body = json.dumps({"albumId":album_id, "newMediaItems":[{"description":"","simpleMediaItem":{"uploadToken":upload_token.content.decode()}}]}, indent=4)
-
-                resp = session.post('https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate', create_body).json()
-
-                logging.debug("Server response: {}".format(resp))
-
-                if "newMediaItemResults" in resp:
-                    status = resp["newMediaItemResults"][0]["status"]
-                    if status.get("code") and (status.get("code") > 0):
-                        logging.error("Could not add \'{0}\' to library -- {1}".format(photo_file_name.name, status["message"]))
-                    else:
-                        logging.info("Added \'{}\' to library and album \'{}\' ".format(photo_file_name.name, album_name))
-                        number_added += 1
-                        # Linux: let's try explicitly changing access (and change) time, but not modify time
-                        # Not sure how to implement this on Windows
-                        try:
-                            fn_stat = os.stat(photo_file_name)
-                            logging.debug('stat before {}'.format(fn_stat))
-                            os.utime(photo_file_name, (datetime.now().timestamp(), fn_stat.st_mtime))
-                            logging.debug('stat after {}'.format(os.stat(photo_file_name)))
-                        except Exception as e:
-                            logging.info('Setting access time error: {}'.format(e))
-                        finally:
-                            pass
-                else:
-                    logging.error("Could not add \'{0}\' to library. Server Response -- {1}".format(photo_file_name.name, resp))
-
+            find_match = media_comparison(args, [photo_file_name,],
+                    session, albums_for_loop)
+            yes_match = find_match.get(photo_file_name, False)
+            if yes_match:
+                logging.info("Match, not uploading -- {}".format(photo_file_name))
             else:
-                logging.error("Could not upload \'{0}\'. Server Response - {1}".format(photo_file_name.name, upload_token))
+                logging.info("Uploading -- {}".format(photo_file_name))
+
+            if not yes_match:
+                try:
+                    upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', photo_bytes)
+                except OverflowError as e:
+                    logging.info('''OverflowError: {} Trying chunking'''.format(e))
+                    upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', data=read_file(photo_file_name))
+                except Exception as e:
+                    logging.info('''Maybe a timout error: {} Trying chunking'''.format(e))
+                    upload_token = session.post('https://photoslibrary.googleapis.com/v1/uploads', data=read_file(photo_file_name))
+                except Exception as e:
+                    logging.error("Even after chunking, could not upload file {}: {}".format(photo_file_name, e))
+                    continue
+
+                if (upload_token.status_code == 200) and (upload_token.content):
+    
+                    create_body = json.dumps({"albumId":album_id, "newMediaItems":[{"description":"","simpleMediaItem":{"uploadToken":upload_token.content.decode()}}]}, indent=4)
+    
+                    resp = session.post('https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate', create_body).json()
+    
+                    logging.debug("Server response mediaItems:batchCreate: {}".format(resp))
+    
+                    if "newMediaItemResults" in resp:
+                        status = resp["newMediaItemResults"][0]["status"]
+                        if status.get("code") and (status.get("code") > 0):
+                            logging.error("Could not add \'{0}\' to library -- {1}".format(photo_file_name.name, status["message"]))
+                        else:
+                            logging.info("Added \'{}\' to library and album \'{}\' ".format(photo_file_name.name, album_name))
+                            number_added += 1
+                            # Linux: Changed: st_atime and st_ctime, Unchanged: st_mtime
+                            # Windows: Changed: st_atime, Unchanged: st_mtime and st_ctime
+                            try:
+                                fn_stat = os.stat(photo_file_name)
+                                logging.debug('stat before {}'.format(fn_stat))
+                                os.utime(photo_file_name, (datetime.now().timestamp(), fn_stat.st_mtime))
+                                logging.debug('stat after {}'.format(os.stat(photo_file_name)))
+                            except Exception as e:
+                                logging.info('Setting access time error: {}'.format(e))
+                            finally:
+                                pass
+                    else:
+                        logging.error("Could not add \'{0}\' to library. Server Response -- {1}".format(photo_file_name.name, resp))
+    
+                else:
+                    logging.error("Could not upload \'{0}\'. Server Response - {1}".format(photo_file_name.name, upload_token))
 
     try:
         del(session.headers["Content-type"])
@@ -323,6 +337,28 @@ def recurse_dirs(p, args, photo_file_list=[]):
 
     return photo_file_list 
 
+def dry_run_msg(photo_file_list):
+
+        msg = '''
+File list:
+{}
+
+Number of files: {}        
+Exiting, dry-run'''.format(format_file_list(photo_file_list), len(photo_file_list))
+
+        return msg
+def media_comparison(args, photo_file_list, session, albums):
+    results = {}
+    for ea in photo_file_list:
+        logging.debug('Type of ea in photo_file_list: {}:'.format(type(ea)))
+        match = probe_meta.compare_media(args, posix_path=ea,
+                session=session, albums=albums)
+        logging.info('File match: {} - {}'.format(match, ea))
+
+        results[ea] = match 
+
+    return results
+
 def main():
 
     args = parse_args()
@@ -362,12 +398,9 @@ Exiting ...
     photo_file_list = clean_file_list(photo_file_list, args)
 
     if args.dry_run:
-        print('''
-File list:
-{}
+        msg = dry_run_msg(photo_file_list)
+        print(msg)
 
-Number of files: {}        
-Exiting, dry-run'''.format(format_file_list(photo_file_list), len(photo_file_list)))
         sys.exit()
         
     logging.debug('photo_file_list: {}:'.format(photo_file_list))
@@ -375,7 +408,15 @@ Exiting, dry-run'''.format(format_file_list(photo_file_list), len(photo_file_lis
     session = get_authorized_session(args.auth_file, Path(args.credentials))
     logging.debug("Session set up, now uploading ... ")
 
-    number_added = upload_photos(session, photo_file_list, args.album_name)
+    if args.stat_times:
+        msg = dry_run_msg(photo_file_list)
+        print(msg)
+        print('''Before exiting, lets see if the exif or st_atime timestamps match:''')
+        files_needed_uploaded = media_comparison(args, photo_file_list,
+                session, getAlbums(session, True))
+        sys.exit()
+
+    number_added = upload_photos(session, photo_file_list, args.album_name, args)
 
     # As a quick status check, dump the albums and their key attributes
 

@@ -34,17 +34,19 @@ An example would be `/path/to/file /path/to/* /path/to/dir`
 ## Usage, revised
 
 ```
-usage: upload.py [-h] [--auth  auth_file] -c CREDENTIALS [--album album_name] [--log log_file] [--dry-run] [--dry-run-plus] [--debug] [--recurse {none,once,all}] [-e [exclude [exclude ...]]]
-                 [-m minutes]
-                 [photo [photo ...]]
+usage: probe_meta.py [-h] [--auth  auth_file] -c CREDENTIALS --album album_name [--log log_file] [--tz time_zone] [--dry-run] [--test-stat-times] [--debug] [--recurse {none,once,all}]
+                     [-e [exclude [exclude ...]]] [-m minutes]
+                     [photo [photo ...]]
 
 Upload photos and videos to Google Photos. And, add to an album created by this API.
+
+    To do: fix for when the number of Alums > 50
 
     Windows paths should be like this: 'z:/path/to/some/file_or_dir'
     No wildcards like 'z:/path/*' in Windows.
     Use quotes, to prevent Windows from mangling, in most cases
 
-    Working on updating st_atime, at time of upload, to help with timestamp comparison.
+    Note: st_atime is updated, at the time of upload, to help with timestamp comparison.
     That is, when a file is uploaded, the access time will be updated.
     This will be used when exif not available, as google uses the st_atime for it's
     creation time when exif is not available.
@@ -62,18 +64,20 @@ optional arguments:
   --auth  auth_file     Optional: used to store tokens and credentials, such as the refresh token
   -c CREDENTIALS, --credentials CREDENTIALS
                         Path to client_id.json.
-  --album album_name    Name of photo album to create (if it doesn't exist). Any uploaded photos will be added to this album.
+  --album album_name    Required. Name of photo album to create (if it doesn't exist). Any uploaded photos will be added to this album.
   --log log_file        Name of output file for log messages
+  --tz time_zone        If you suspect your exif timestamp is lacking a time zone, you can give it here, e.g. America/New_York. The default is Europe/London
   --dry-run             Prints photo file list and exits
-  --dry-run-plus        Not implemented, yet. Prints photo file list and checks to see if files would be updated, so --min adjustments can be made
+  --test-stat-times     Prints photo file list and checks to see if files would be updated based on timestamp, so --min adjustments can be made
   --debug               turn on debug logging
   --recurse {none,once,all}
                         Default: once
   -e [exclude [exclude ...]], --exclude [exclude [exclude ...]]
                         List of extensions to exclude. Example: --exclude .db .iso
   -m minutes, --min minutes
-                        Not completely implemented yet. Developing. Number of minutes in timestamp (st_atime) difference to accept, if filename, album, mimetype match, but exif.datetime does not exist,
-                        when deciding to upload again. Default: 0
+                        Number of minutes in timestamp (st_atime) difference to accept as a match. That is, if filename, album, mimetype match, but exif.datetime does not exist, or is not a match then
+                        compare st_atime. Default: 0
+
 ```
 
 # gphotos-upload, original
