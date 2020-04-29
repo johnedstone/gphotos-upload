@@ -11,28 +11,11 @@ import sys
 import arrow
 from PIL import Image
 from PIL.ExifTags import TAGS
-import upload
 
+from utils import album_contents, setup
 now = datetime.now()
 
 LOG_LEVEL = logging.INFO
-
-class Media:
-    ''' Media on Google Cloud'''
-
-    def __init__(self, mimetype, filename):
-        self.filename = filename
-        self.mimetype = mimetype
-        self.media_metadata_creation_time = ''
-
-    def __repr__(self):
-        return '{}'.format(self.filename)
-
-    @property
-    def creation_ts(self):
-        ''' reformatting, removing Z, etc '''
-        d = arrow.get(self.media_metadata_creation_time)
-        return d.datetime
 
 class MediaOnDisk:
     '''
@@ -92,34 +75,13 @@ def get_exif(filename):
 
     return exif
 
-def get_album_contents(session, album):
-
-    media_items = []
-    session.headers["Content-type"] = "application/json"
-
-    try:
-        data = json.dumps({"albumId":album['id'], "pageSize":"100"}, indent=4)
-        r = session.post('https://photoslibrary.googleapis.com/v1/mediaItems:search', data).json()
-        if 'mediaItems' in r.keys():
-            for ea in r['mediaItems']:
-                media = Media(ea['mimeType'], ea['filename'])
-                if 'mediaMetadata' in ea.keys():
-                        media.media_metadata_creation_time = ea['mediaMetadata'].get('creationTime', '')
-                media_items.append(media)
-
-    except Exception as e:
-        logging.error('{}'.format(e))
-        sys.exit()
-    finally:
-        return media_items
-
-def compare_media(args, posix_path=None, session=None, albums=None):
+def compare_media(args, posix_path, media_items):
     media_match = False
+    media_exists_in_album = False
+
     try:
         media_on_disk = MediaOnDisk(posix_path)
-
         logging.debug('Path of media on disk: {}'.format(media_on_disk.path_obj))
-
         mime, encoding = mimetypes.guess_type('{}'.format(media_on_disk.path_obj))
         logging.debug(mime)
         media_on_disk.mime_type = mime
@@ -127,7 +89,6 @@ def compare_media(args, posix_path=None, session=None, albums=None):
         # Google registers webm as mp4, adjusting here
         if media_on_disk.mime_type == 'video/webm':
             media_on_disk.mime_type = 'video/mp4'
-
         logging.debug(media_on_disk.mime_type)
 
         exif = get_exif(media_on_disk.path_obj)
@@ -140,83 +101,85 @@ def compare_media(args, posix_path=None, session=None, albums=None):
 
         logging.debug('media_on_disk:{}, exif_datetime:{}, st_ctime:{}'.format(media_on_disk, media_on_disk.exif_datetime, media_on_disk.st_ctime))
 
-        logging.debug('Response: {}'.format(albums))
-        album_exists = False
-        for a in albums:
-            if a["title"].lower() == args.album_name.lower():
-                album_exists =True
-                media_items = get_album_contents(session, a)
-                logging.debug('Album contents: {}'.format([(x.filename, x.mimetype, x.media_metadata_creation_time) for x in media_items]))
-            
-                for mi in media_items:
-                    if mi.filename == media_on_disk.path_obj.name:
-                        logging.debug('1: Found name match {}'.format(media_on_disk))
-                        logging.debug("media mime on disk: {}, media mime in cloud: {}".format(media_on_disk.mime_type, mi.mimetype))
-                        if media_on_disk.mime_type == mi.mimetype:
-                            logging.debug('2: Found mimetype (media on disk) match: {}'.format(media_on_disk.mime_type))
-                            if mi.creation_ts == media_on_disk.exif_ts(args.tz):
-                                logging.debug('3: timestamps match {}: {}'.format(mi.media_metadata_creation_time, media_on_disk.exif_datetime))
+        # Album contents
+        logging.debug('Album contents: {}'.format([(x.filename, x.mimetype, x.media_metadata_creation_time) for x in media_items]))
+        for mi in media_items:
+            if mi.filename == media_on_disk.path_obj.name:
+                media_exists_in_album = True
+                logging.debug('1: Found name match {}'.format(media_on_disk))
+                logging.debug("media mime on disk: {}, media mime in cloud: {}".format(media_on_disk.mime_type, mi.mimetype))
+                if media_on_disk.mime_type == mi.mimetype:
+                    logging.debug('2: Found mimetype (media on disk) match: {}'.format(media_on_disk.mime_type))
+                    if mi.creation_ts == media_on_disk.exif_ts(args.tz):
+                        logging.debug('3: timestamps match {}: {}'.format(mi.media_metadata_creation_time, media_on_disk.exif_datetime))
+                        media_match = True
+
+                        logging.debug('Yes match, no upload: album, filename, mime, timestamp: {}'.format(args.photos[0]))
+                        # Used for debugging
+                        logging.debug('str: Timestamp from google: {}'.format(mi.media_metadata_creation_time))
+                        logging.debug('Timestamp, reformatted, from google: {}'.format(mi.creation_ts))
+                        logging.debug('str: Timestamp (exif) from media on disk: {}'.format(media_on_disk.exif_datetime))
+                        logging.debug('Timestamp (exif), reformatted, from media on disk: {}'.format(media_on_disk.exif_ts(args.tz)))
+                        logging.debug('str: Timestamp st_ctime from media on disk: {}'.format(media_on_disk.st_ctime))
+                        logging.debug('str: Timestamp st_atime from media on disk: {}'.format(media_on_disk.st_atime))
+                        logging.debug('str: Timestamp st_mtime from media on disk: {}'.format(media_on_disk.st_mtime))
+                        logging.debug('Timestamp st_atime from media on disk: {}'.format(media_on_disk.st_atime_ts))
+                    elif args.minutes != 0:
+                        logging.debug('--min  {}'.format(args.minutes))
+                        if not media_on_disk.exif_ts(args.tz):
+                            min_delta = timedelta(minutes=args.minutes)
+                            logging.debug('min_delta: {}'.format(min_delta))
+                            logging.debug('time delta: {}'.format(media_on_disk.st_atime_ts - mi.creation_ts))
+                            ts_diff =media_on_disk.st_atime_ts - mi.creation_ts
+                            if ts_diff < min_delta:
+                                logging.debug('Woo! Hoo!')
+                                logging.debug('Yes match, upload not needed: album, filename, mime are ok, st_atime within range '
+                                    '[{} < {} min] [{} {}]'.format(
+                                        ts_diff, args.minutes, media_on_disk.st_atime_ts, mi.creation_ts))
                                 media_match = True
-
-                                logging.debug('Yes match, no upload: album, filename, mime, timestamp: {}'.format(args.photos[0]))
-                                # Used for debugging
-                                logging.debug('str: Timestamp from google: {}'.format(mi.media_metadata_creation_time))
-                                logging.debug('Timestamp, reformatted, from google: {}'.format(mi.creation_ts))
-                                logging.debug('str: Timestamp (exif) from media on disk: {}'.format(media_on_disk.exif_datetime))
-                                logging.debug('Timestamp (exif), reformatted, from media on disk: {}'.format(media_on_disk.exif_ts(args.tz)))
-                                logging.debug('str: Timestamp st_ctime from media on disk: {}'.format(media_on_disk.st_ctime))
-                                logging.debug('str: Timestamp st_atime from media on disk: {}'.format(media_on_disk.st_atime))
-                                logging.debug('str: Timestamp st_mtime from media on disk: {}'.format(media_on_disk.st_mtime))
-                                logging.debug('Timestamp st_atime from media on disk: {}'.format(media_on_disk.st_atime_ts))
-                            elif args.minutes != 0:
-                                logging.debug('--min  {}'.format(args.minutes))
-                                if not media_on_disk.exif_ts(args.tz):
-                                    min_delta = timedelta(minutes=args.minutes)
-                                    logging.debug('min_delta: {}'.format(min_delta))
-                                    logging.debug('time delta: {}'.format(media_on_disk.st_atime_ts - mi.creation_ts))
-                                    ts_diff =media_on_disk.st_atime_ts - mi.creation_ts
-                                    if ts_diff < min_delta:
-                                        logging.debug('Woo! Hoo!')
-                                        logging.debug('Yes match, upload not needed: album, filename, mime are ok, st_atime within range '
-                                            '[{} < {} min] [{} {}]'.format(
-                                                ts_diff, args.minutes, media_on_disk.st_atime_ts, mi.creation_ts))
-                                        media_match = True
-                                    else:
-                                        pass
-                                        logging.debug('No match, upload needed: album, filename, mime are ok, '
-                                            'but [{} > {} min] [{} {}]'.format(
-                                                ts_diff, args.minutes, media_on_disk.st_atime_ts, mi.creation_ts))
-                                else:
-                                    logging.debug("There was media_on_disk.exif_ts but it doesn't match Google's. So you'd better upload again, or adjust the tz")
-                                    logging.debug('str: Timestamp from google: {}'.format(mi.media_metadata_creation_time))
-                                    logging.debug('Timestamp, reformatted, from google: {}'.format(mi.creation_ts))
-                                    logging.debug('str: Timestamp (exif) from media on disk: {}'.format(media_on_disk.exif_datetime))
-                                    logging.debug('Timestamp (exif), reformatted from media on disk: {}'.format(media_on_disk.exif_ts(args.tz)))
-
                             else:
-                                logging.debug('No match, upload: filename:ok, mimetype:ok, timestamp:not_okay: {}'.format(args.photos[0]))
+                                pass
+                                logging.debug('No match, upload needed: album, filename, mime are ok, '
+                                    'but [{} > {} min] [{} {}]'.format(
+                                        ts_diff, args.minutes, media_on_disk.st_atime_ts, mi.creation_ts))
+                        else:
+                            logging.info(' | {:<60} | {:<5} {}'.format(
+                                "There was media_on_disk.exif_ts but it doesn't match Google's. So you'd better upload again, or adjust the tz",
+                                'Path:', 
+                                media_on_disk.path_obj.name))
 
-                                # Used for debugging
-                                logging.debug('Timestamp from google: {}'.format(mi.media_metadata_creation_time))
-                                logging.debug('Timestamp (exif) from media on disk: {}'.format(media_on_disk.exif_datetime))
-                                logging.debug('Timestamp st_ctime from media on disk: {}'.format(media_on_disk.st_ctime))
-                                logging.debug('Timestamp st_atime from media on disk: {}'.format(media_on_disk.st_atime))
-                                logging.debug('Timestamp st_mtime from media on disk: {}'.format(media_on_disk.st_mtime))
+                            logging.debug('str: Timestamp from google: {}'.format(mi.media_metadata_creation_time))
+                            logging.debug('Timestamp, reformatted, from google: {}'.format(mi.creation_ts))
+                            logging.debug('str: Timestamp (exif) from media on disk: {}'.format(media_on_disk.exif_datetime))
+                            logging.debug('Timestamp (exif), reformatted from media on disk: {}'.format(media_on_disk.exif_ts(args.tz)))
 
-            break # Found an album match
+                    else:
+                        logging.debug('No match, upload: filename:ok, mimetype:ok, timestamp:not_okay: {}'.format(args.photos[0]))
 
-        if not album_exists:
-                logging.error('Match not possible.  Album name {} not found'.format(args.album_name))
+                        # Used for debugging
+                        logging.debug('Timestamp from google: {}'.format(mi.media_metadata_creation_time))
+                        logging.debug('Timestamp (exif) from media on disk: {}'.format(media_on_disk.exif_datetime))
+                        logging.debug('Timestamp st_ctime from media on disk: {}'.format(media_on_disk.st_ctime))
+                        logging.debug('Timestamp st_atime from media on disk: {}'.format(media_on_disk.st_atime))
+                        logging.debug('Timestamp st_mtime from media on disk: {}'.format(media_on_disk.st_mtime))
+
+                break
+
+        if not media_exists_in_album:
+            logging.debug('File Not Found in "{}" album: {}'.format(args.album_name, media_on_disk.path_obj))
+        else:
+            logging.debug('File Found in "{}" album: {}'.format(args.album_name, media_on_disk.path_obj))
 
     except Exception as e:
         logging.error('There was an error trying to do a match {}'.format(e))
     finally:
         logging.debug('media match: {}'.format(media_match))
-        return media_match
+        return media_match, media_exists_in_album
 
 def main():
 
-    args = upload.parse_args()
+    args = setup.parse_args()
+    existing_album = None
 
     LOG_LEVEL = logging.INFO
     if args.log_level:
@@ -244,7 +207,7 @@ Exiting, --dry-run '''.format(args.photos[0]))
     else:
         if args.photos:
             try:
-                session = upload.get_authorized_session(args.auth_file, Path(args.credentials))
+                session = setup.get_authorized_session(args.auth_file, Path(args.credentials))
             except Exception as e:
                 logging.error('{}'.format(e))
                 sys.exit('''
@@ -253,9 +216,26 @@ Exiting, --dry-run '''.format(args.photos[0]))
 
             posix_path = Path(args.photos[0])
 
-            result = compare_media(args, posix_path=posix_path,
-                    session=session, albums=upload.getAlbums(session, True))
-            logging.info('Was there a match? {}'.format(result))
+            album_list = album_contents.get_albums(session, True)
+            for a in album_list:
+                if a['title'].lower() == args.album_name.lower():
+                    existing_album = a
+                    break
+
+            if existing_album:
+                album_content_details = album_contents.get_album_contents(
+                        session, existing_album)
+                media_match, media_exists_in_album = compare_media(args, posix_path, album_content_details)
+                print('')
+                logging.info(' | {:<16} {:<5} | {:<5} {:<5} | {:<5} {}'.format(
+                    'Exists in album:', str(media_exists_in_album),
+                    'Match:', str(media_match),
+                    'Path:', posix_path))
+            else:
+                print('')
+                logging.info('''
+Album "{}" does not exist, so no comparison is possible!
+Exiting ...'''.format(args.album_name))
 
         else:
             logging.error('No photo or video path provided')

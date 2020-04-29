@@ -34,17 +34,25 @@ An example would be `/path/to/file /path/to/* /path/to/dir`
 ## Usage, revised
 
 ```
-usage: probe_meta.py [-h] [--auth  auth_file] -c CREDENTIALS --album album_name [--log log_file] [--tz time_zone] [--dry-run] [--test-stat-times] [--debug] [--recurse {none,once,all}]
-                     [-e [exclude [exclude ...]]] [-m minutes]
-                     [photo [photo ...]]
+usage: upload.py [-h] [--auth  auth_file] -c CREDENTIALS --album album_name [--log log_file] [--tz time_zone] [--dry-run] [--test-stat-times] [--debug] [--recurse {none,once,all}]
+                 [-e [exclude [exclude ...]]] [-m minutes]
+                 [photo [photo ...]]
 
 Upload photos and videos to Google Photos. And, add to an album created by this API.
 
-    To do: fix for when the number of Alums > 50
+    To do: fix for when the number of media_items in album > 50
 
     Windows paths should be like this: 'z:/path/to/some/file_or_dir'
     No wildcards like 'z:/path/*' in Windows.
     Use quotes, to prevent Windows from mangling, in most cases
+
+    Note: treating album names as case insensitive
+
+    Note: API only uploads to albums created by API
+
+    Note: images exif timestamps do not have TZ.  Google assumes/uses UTC.
+    --tz will help compare the exif if you know that the TZ is not UTC.
+    Use this to compare if you need to upload image again.
 
     Note: st_atime is updated, at the time of upload, to help with timestamp comparison.
     That is, when a file is uploaded, the access time will be updated.
@@ -77,7 +85,6 @@ optional arguments:
   -m minutes, --min minutes
                         Number of minutes in timestamp (st_atime) difference to accept as a match. That is, if filename, album, mimetype match, but exif.datetime does not exist, or is not a match then
                         compare st_atime. Default: 0
-
 ```
 
 # gphotos-upload, original
