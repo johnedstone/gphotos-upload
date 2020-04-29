@@ -75,28 +75,29 @@ def upload_photos(session, photo_file_list, args):
                 logging.error("Could not read file \'{0}\' -- {1}".format(photo_file_name, err))
                 continue
 
-            result = media_comparison(args, [photo_file_name,],
-                    album_content_details)
+            if not args.skip_compare:
+                result = media_comparison(args, [photo_file_name,],
+                        album_content_details)
 
-            if result.get(photo_file_name, None):
-                if result[photo_file_name].get('media_match', None):
-                    logging.info(' | {:<7} | {:<7} {:<4} | {:<15} {:<4} | {:<5} {}'.format(
-                    'Pass',
-                    'In album:', str(result[photo_file_name]['media_exists_in_album']),
-                    'Timestamp Match:', str(result[photo_file_name]['media_match']),
-                    'Path:', photo_file_name))
-
-                    number_passed_on_ts += 1 
-                    continue
+                if result.get(photo_file_name, None):
+                    if result[photo_file_name].get('media_match', None):
+                        logging.info(' | {:<7} | {:<7} {:<4} | {:<15} {:<4} | {:<5} {}'.format(
+                        'Pass',
+                        'In album:', str(result[photo_file_name]['media_exists_in_album']),
+                        'Timestamp Match:', str(result[photo_file_name]['media_match']),
+                        'Path:', photo_file_name))
+    
+                        number_passed_on_ts += 1 
+                        continue
+                    else:
+                        logging.info(' | {:<7} | {:<7} {:<4} | {:<15} {:<4} | {:<5} {}'.format(
+                        'Upload',
+                        'In album:', str(result[photo_file_name]['media_exists_in_album']),
+                        'Timestamp Match:', str(result[photo_file_name]['media_match']),
+                        'Path:', photo_file_name))
                 else:
-                    logging.info(' | {:<7} | {:<7} {:<4} | {:<15} {:<4} | {:<5} {}'.format(
-                    'Upload',
-                    'In album:', str(result[photo_file_name]['media_exists_in_album']),
-                    'Timestamp Match:', str(result[photo_file_name]['media_match']),
-                    'Path:', photo_file_name))
-            else:
-                logging.error('Something odd here, skipping {}'.format(photo_file_name))
-                continue
+                    logging.error('Something odd here, skipping {}'.format(photo_file_name))
+                    continue
 
             session.headers["X-Goog-Upload-File-Name"] = photo_file_name.name
             try:

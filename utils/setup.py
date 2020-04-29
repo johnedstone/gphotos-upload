@@ -50,6 +50,8 @@ def parse_args(arg_input=None):
                     help='If you suspect your exif timestamp is lacking a time zone, you can give it here, e.g. America/New_York.  The default is Europe/London')
     parser.add_argument('--dry-run', action='store_true',
                 help='Prints photo file list and exits')
+    parser.add_argument('--skip-compare', action='store_true',
+                help='Skip comparing filename, mime_time, exif and timestamp.  Just upload')
     parser.add_argument('--test-stat-times', action='store_true', dest='stat_times',
                 help='Prints photo file list and checks to see if files would be updated based on timestamp, so --min adjustments can be made')
     parser.add_argument('--debug', dest='log_level', action='store_true',

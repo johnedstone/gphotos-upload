@@ -6,7 +6,6 @@ __Original gphotos-upload Readme is further down below. New features of fork are
 will be counted agains storage limits.  To remdiate, go to settings -> "recover storage" and choose compress storage, after uploading.
 
 ### To do
-* create a --flag to skip comparing exif or st_atime
 * Selenium: webbrowser_selenium.py *Notes: SSL errors - http://allselenium.info/selfsigned-certificates-python-selenium/*
 
 ## Fixed
@@ -15,7 +14,7 @@ Implemented chunked data for all uploads.
 
 ## Features of this fork:
 * Using pathlib, upload.py is now compatible on Linux and Windows
-* added --dry-run --credentials, --exclude, --recurse, --min, --test-stat-times, --tz
+* added --dry-run --credentials, --exclude, --recurse, --min, --test-stat-times, --tz, --skip-compare
 * Can check exif or ts_atime to determine if file has been previous uploaded. st_atime is updated upon uploading.
 * On Windows, upload.py has been tested with Anaconda Powershell Prompt
     * conda install git
