@@ -21,26 +21,37 @@ class Media:
         return d.datetime
 
 def get_album_contents(session, album):
-    ''' need to deal with page token here '''
+    ''' returns generator '''
 
-    media_items = []
     session.headers["Content-type"] = "application/json"
+    data_dict = {
+        'albumId':album['id'],
+        'pageSize':'100',
+    }
+    while True:
+        data = json.dumps(data_dict, indent=4)
+        resp = session.post('https://photoslibrary.googleapis.com/v1/mediaItems:search', data).json()
+        if 'mediaItems' in resp: 
+            for mi in resp['mediaItems']: 
+                yield mi
 
-    try:
-        data = json.dumps({"albumId":album['id'], "pageSize":"100"}, indent=4)
-        r = session.post('https://photoslibrary.googleapis.com/v1/mediaItems:search', data).json()
-        if 'mediaItems' in r.keys():
-            for ea in r['mediaItems']:
-                media = Media(ea['mimeType'], ea['filename'])
-                if 'mediaMetadata' in ea.keys():
-                        media.media_metadata_creation_time = ea['mediaMetadata'].get('creationTime', '')
-                media_items.append(media)
+            if 'nextPageToken' in resp:
+                data_dict['pageToken'] = resp['nextPageToken']
+            else:
+                return
+        else:
+            return
 
-    except Exception as e:
-        logging.error('{}'.format(e))
-        sys.exit('Exiting on error ...')
-    finally:
-        return media_items
+def parse_media_items(album_content_generator):
+    media_items = []
+
+    for ea in album_content_generator:
+        media = Media(ea['mimeType'], ea['filename'])
+        if 'mediaMetadata' in ea.keys():
+            media.media_metadata_creation_time = ea['mediaMetadata'].get('creationTime', '')
+            media_items.append(media)
+
+    return media_items
 
 
 def get_albums(session, appCreatedOnly=False):

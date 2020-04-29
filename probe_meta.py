@@ -140,7 +140,7 @@ def compare_media(args, posix_path, media_items):
                             else:
                                 pass
                                 logging.debug('No match, upload needed: album, filename, mime are ok, '
-                                    'but [{} > {} min] [{} {}]'.format(
+                                    'but [{} > {} min] [Disk:{} G:{}]'.format(
                                         ts_diff, args.minutes, media_on_disk.st_atime_ts, mi.creation_ts))
                         else:
                             logging.info(' | {:<60} | {:<5} {}'.format(
@@ -223,8 +223,9 @@ Exiting, --dry-run '''.format(args.photos[0]))
                     break
 
             if existing_album:
-                album_content_details = album_contents.get_album_contents(
+                album_content_generator = album_contents.get_album_contents(
                         session, existing_album)
+                album_content_details = album_contents.parse_media_items(album_content_generator)
                 media_match, media_exists_in_album = compare_media(args, posix_path, album_content_details)
                 print('')
                 logging.info(' | {:<16} {:<5} | {:<5} {:<5} | {:<5} {}'.format(

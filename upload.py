@@ -78,23 +78,6 @@ def upload_photos(session, photo_file_list, args):
             result = media_comparison(args, [photo_file_name,],
                     album_content_details)
 
-            '''
-            result = media_comparison(args, photo_file_list,
-                    album_content_details)
-            if result:
-                logging.debug('{}'.format(result))
-                for ea in result.keys():
-                    print('{:<16} {:<5} | {:<16} {:<5} | {:<5} {}'.format(
-                    'Exists in album:', str(result[ea]['media_exists_in_album']),
-                    'Timestamp Match:', str(result[ea]['media_match']),
-                    'Path:', ea))
-'''
-
-#            if result.get(photo_file_name) and result[photo_file_name].get(
-#                logging.info("Match, not uploading -- {}".format(photo_file_name))
-#            else:
-#                logging.info("Uploading -- {}".format(photo_file_name))
-
             if result.get(photo_file_name, None):
                 if result[photo_file_name].get('media_match', None):
                     logging.info(' | {:<7} | {:<7} {:<4} | {:<15} {:<4} | {:<5} {}'.format(
@@ -239,8 +222,9 @@ def get_album_and_contents(session, args):
             break
 
     if album_exists:
-        album_content_details = album_contents.get_album_contents(
+        album_content_generator = album_contents.get_album_contents(
                 session, album_itself)
+        album_content_details = album_contents.parse_media_items(album_content_generator)
 
     return album_exists, album_content_details
 

@@ -6,19 +6,17 @@ __Original gphotos-upload Readme is further down below. New features of fork are
 will be counted agains storage limits.  To remdiate, go to settings -> "recover storage" and choose compress storage, after uploading.
 
 ### To do
-
-* Check if file exists, so time is not lost uploading. This may be hard to do,
-as Google does not return any checksum to you of the original photo.
-
+* create a --flag to skip comparing exif or st_atime
 * Selenium: webbrowser_selenium.py *Notes: SSL errors - http://allselenium.info/selfsigned-certificates-python-selenium/*
 
 ## Fixed
 * 02-Apr-2020: noted OverflowError on Linux, with 2.5GB mp4, but not on Windows.
-Implemented chunked data for requests.post()
+Implemented chunked data for all uploads.
 
 ## Features of this fork:
 * Using pathlib, upload.py is now compatible on Linux and Windows
-* added --dry-run --credentials, --exclude, --recurse, --min, --dry-run-plus
+* added --dry-run --credentials, --exclude, --recurse, --min, --test-stat-times, --tz
+* Can check exif or ts_atime to determine if file has been previous uploaded. st_atime is updated upon uploading.
 * On Windows, upload.py has been tested with Anaconda Powershell Prompt
     * conda install git
     * conda install google-auth-oauthlib
