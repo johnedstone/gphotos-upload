@@ -87,9 +87,23 @@ def compare_media(args, posix_path, media_items):
         media_on_disk.mime_type = mime
 
         # Google registers webm as mp4, adjusting here
-        if media_on_disk.mime_type == 'video/webm':
+        if media_on_disk.mime_type in ['video/webm', 'video/x-matroska']:
+
+            logging.info(''' | Comparing {:<20} to G's video/mp4 | {}'''.format(
+                media_on_disk.mime_type, media_on_disk))
+
             media_on_disk.mime_type = 'video/mp4'
-        logging.debug(media_on_disk.mime_type)
+
+        if not media_on_disk.mime_type and \
+                media_on_disk.path_obj.suffix == '.m4v':
+
+            logging.info(''' | Comparing {:<20} to G's video/mp4 | {}'''.format(
+                '.m4v', media_on_disk))
+
+            media_on_disk.mime_type = 'video/mp4'
+
+
+        logging.debug('media on disk mime type: {}'.format(media_on_disk.mime_type))
 
         exif = get_exif(media_on_disk.path_obj)
         logging.debug('exif: {}'.format(exif))
