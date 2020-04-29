@@ -133,18 +133,23 @@ def compare_media(args, posix_path, media_items):
                             ts_diff =media_on_disk.st_atime_ts - mi.creation_ts
                             if ts_diff < min_delta:
                                 logging.debug('Woo! Hoo!')
-                                logging.debug('Yes match, upload not needed: album, filename, mime are ok, st_atime within range '
-                                    '[{} < {} min] [{} {}]'.format(
-                                        ts_diff, args.minutes, media_on_disk.st_atime_ts, mi.creation_ts))
+                                logging.debug('|timestamp ok '
+                                    '| [{} > {} min] [Disk:{} G:{}] | {}'.format(
+                                        ts_diff, args.minutes,
+                                        media_on_disk.st_atime_ts, mi.creation_ts,
+                                        media_on_disk.path_obj.name,
+                                        ))
                                 media_match = True
                             else:
-                                pass
-                                logging.debug('No match, upload needed: album, filename, mime are ok, '
-                                    'but [{} > {} min] [Disk:{} G:{}]'.format(
-                                        ts_diff, args.minutes, media_on_disk.st_atime_ts, mi.creation_ts))
+                                logging.info('| timestamp not ok '
+                                    '| [{} > {} min] [Disk:{} G:{}] | {}'.format(
+                                        ts_diff, args.minutes,
+                                        media_on_disk.st_atime_ts, mi.creation_ts,
+                                        media_on_disk.path_obj.name,
+                                        ))
                         else:
-                            logging.info(' | {:<60} | {:<5} {}'.format(
-                                "There was media_on_disk.exif_ts but it doesn't match Google's. So you'd better upload again, or adjust the tz",
+                            logging.info('| timestamp not ok | {:<101} | {:<5} {}'.format(
+                                "Media exif ts didn't match Google's. Try, e.g --tz America/New_York to suggest to G your media's TZ",
                                 'Path:', 
                                 media_on_disk.path_obj.name))
 

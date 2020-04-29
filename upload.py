@@ -118,15 +118,15 @@ def upload_photos(session, photo_file_list, args):
                     if status.get("code") and (status.get("code") > 0):
                         logging.error("Could not add \'{0}\' to library -- {1}".format(photo_file_name.name, status["message"]))
                     else:
-                        logging.info("Added \'{}\' to library and album \'{}\' ".format(photo_file_name.name, args.album_name))
+                        logging.info(''' | {:<7} | '{}' to library and album '{}' '''.format('Added', photo_file_name.name, args.album_name))
                         number_added += 1
                         # Linux: Changed: st_atime and st_ctime, Unchanged: st_mtime
                         # Windows: Changed: st_atime, Unchanged: st_mtime and st_ctime
                         try:
                             fn_stat = os.stat(photo_file_name)
-                            logging.debug('stat before {}'.format(fn_stat))
+                            #logging.debug('stat before {}'.format(fn_stat))
                             os.utime(photo_file_name, (datetime.now().timestamp(), fn_stat.st_mtime))
-                            logging.debug('stat after {}'.format(os.stat(photo_file_name)))
+                            #logging.debug('stat after {}'.format(os.stat(photo_file_name)))
                         except Exception as e:
                             logging.info('Setting access time error: {}'.format(e))
                         finally:
@@ -171,14 +171,14 @@ def format_file_list(file_list):
         return s.strip()
 
 def recurse_dirs(p, args, photo_file_list=[]):
-    logging.debug('recurse: {}'.format(args.recurse))
-    logging.debug('args: {}'.format(args))
-    logging.debug('p: {}'.format(p))
+    #logging.debug('recurse: {}'.format(args.recurse))
+    #logging.debug('args: {}'.format(args))
+    #logging.debug('p: {}'.format(p))
     if args.recurse == 'none':
         return photo_file_list
     if args.recurse == 'once':
         list_dir = list(p.glob('*'))
-        logging.debug('list_dir: {}'.format(list_dir))
+        #logging.debug('list_dir: {}'.format(list_dir))
     if args.recurse == 'all':
         list_dir = list(p.glob('**/*'))
 
@@ -273,7 +273,7 @@ Exiting ...
 
         sys.exit()
         
-    logging.debug('photo_file_list: {}:'.format(photo_file_list))
+    #logging.debug('photo_file_list: {}:'.format(photo_file_list))
 
     session = setup.get_authorized_session(args.auth_file, Path(args.credentials))
     logging.debug("Session set up, now uploading ... ")
@@ -285,7 +285,7 @@ Exiting ...
             result = media_comparison(args, photo_file_list,
                     album_content_details)
             if result:
-                logging.debug('{}'.format(result))
+                #logging.debug('{}'.format(result))
                 for ea in result.keys():
                     print('{:<16} {:<5} | {:<16} {:<5} | {:<5} {}'.format(
                     'Exists in album:', str(result[ea]['media_exists_in_album']),

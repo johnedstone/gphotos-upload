@@ -64,7 +64,7 @@ def get_albums(session, appCreatedOnly=False):
 
         albums = session.get('https://photoslibrary.googleapis.com/v1/albums', params=params).json()
 
-        logging.debug("Server response: {}".format(albums))
+        #logging.debug("Server response: {}".format(albums))
 
         if 'albums' in albums:
 
