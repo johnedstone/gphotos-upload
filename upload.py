@@ -19,7 +19,7 @@ def create_or_retrieve_album(session, album_title):
     for a in album_contents.get_albums(session, True):
         if a["title"].lower() == album_title.lower():
             album_id = a["id"]
-            logging.info("Uploading into EXISTING photo album -- \'{0}\'".format(album_title))
+            logging.info("| Uploading into EXISTING photo album -- \'{0}\'".format(album_title))
             return album_id
 
 # No matches, create new album
@@ -31,7 +31,7 @@ def create_or_retrieve_album(session, album_title):
     logging.debug("Server response: {}".format(resp))
 
     if "id" in resp:
-        logging.info("Uploading into NEW photo album -- \'{0}\'".format(album_title))
+        logging.info("| Uploading into NEW photo album -- \'{0}\'".format(album_title))
         return resp['id']
     else:
         logging.error("Could not find or create photo album '\{0}\'. Server Response: {1}".format(album_title, resp))
@@ -81,7 +81,7 @@ def upload_photos(session, photo_file_list, args):
 
                 if result.get(photo_file_name, None):
                     if result[photo_file_name].get('media_match', None):
-                        logging.info(' | {:<7} | {:<7} {:<4} | {:<15} {:<4} | {:<5} {}'.format(
+                        logging.info('| {:<7} | {:<7} {:<4} | {:<15} {:<4} | {:<5} {}'.format(
                         'Pass',
                         'In album:', str(result[photo_file_name]['media_exists_in_album']),
                         'Timestamp Match:', str(result[photo_file_name]['media_match']),
@@ -90,7 +90,7 @@ def upload_photos(session, photo_file_list, args):
                         number_passed_on_ts += 1 
                         continue
                     else:
-                        logging.info(' | {:<7} | {:<7} {:<4} | {:<15} {:<4} | {:<5} {}'.format(
+                        logging.info('| {:<7} | {:<7} {:<4} | {:<15} {:<4} | {:<5} {}'.format(
                         'Upload',
                         'In album:', str(result[photo_file_name]['media_exists_in_album']),
                         'Timestamp Match:', str(result[photo_file_name]['media_match']),
@@ -119,17 +119,17 @@ def upload_photos(session, photo_file_list, args):
                     if status.get("code") and (status.get("code") > 0):
                         logging.error("Could not add \'{0}\' to library -- {1}".format(photo_file_name.name, status["message"]))
                     else:
-                        logging.info(''' | {:<7} | '{}' to library and album '{}' '''.format('Added', photo_file_name.name, args.album_name))
+                        logging.info('''| {:<7} | '{}' to library and album '{}' '''.format('Added', photo_file_name.name, args.album_name))
                         number_added += 1
                         # Linux: Changed: st_atime and st_ctime, Unchanged: st_mtime
                         # Windows: Changed: st_atime, Unchanged: st_mtime and st_ctime
                         try:
                             fn_stat = os.stat(photo_file_name)
-                            #logging.debug('stat before {}'.format(fn_stat))
+                            logging.info('stat before {}'.format(fn_stat))
                             os.utime(photo_file_name, (datetime.now().timestamp(), fn_stat.st_mtime))
-                            #logging.debug('stat after {}'.format(os.stat(photo_file_name)))
+                            logging.info('stat after {}'.format(os.stat(photo_file_name)))
                         except Exception as e:
-                            logging.info('Setting access time error: {}'.format(e))
+                            logging.info('|Setting access time: {} | Not critical, used for comparing access times'.format(e))
                         finally:
                             pass
                 else:
@@ -238,11 +238,12 @@ def main():
     if args.log_level:
         LOG_LEVEL = logging.DEBUG
 
-
-    logging.basicConfig(format='%(asctime)s %(module)s.%(funcName)s:%(levelname)s:%(message)s',
+        logging.basicConfig(format='%(asctime)s %(module)s.%(funcName)s:%(levelname)s:%(message)s',
                     datefmt='%m/%d/%Y %I_%M_%S %p',
                     filename=args.log_file,
                     level=LOG_LEVEL)
+    else:
+        logging.basicConfig(filename=args.log_file, level=LOG_LEVEL)
 
     logging.debug('args: {}'.format(args))
     photo_file_list = []
@@ -288,14 +289,13 @@ Exiting ...
             if result:
                 #logging.debug('{}'.format(result))
                 for ea in result.keys():
-                    print('{:<16} {:<5} | {:<16} {:<5} | {:<5} {}'.format(
+                    logging.info('|{:<16} {:<5} | {:<16} {:<5} | {:<5} {}'.format(
                     'Exists in album:', str(result[ea]['media_exists_in_album']),
                     'Timestamp Match:', str(result[ea]['media_match']),
                     'Path:', ea))
 
             sys.exit()
         else:
-            print('')
             logging.info('''
 Album "{}" does not exist, so no comparison is possible!
 Exiting ...'''.format(args.album_name))
@@ -307,7 +307,7 @@ Exiting ...'''.format(args.album_name))
 
     # As a quick status check, dump the albums and their key attributes
 
-    print("{:<50} | {:>8} | {} ".format("PHOTO ALBUM","# PHOTOS", "IS WRITEABLE?"))
+    logging.info("|{:<50} | {:>8} | {} ".format("PHOTO ALBUM","# PHOTOS", "IS WRITEABLE?"))
 
     for a in album_contents.get_albums(session):
         print("{:<50} | {:>8} | {} ".format(a["title"],a.get("mediaItemsCount", "0"), str(a.get("isWriteable", False))))

@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 
 import arrow
+import ffmpeg
 from PIL import Image
 from PIL.ExifTags import TAGS
 
@@ -29,6 +30,7 @@ class MediaOnDisk:
         self.exif_datetime = ''
         self.mime_type = ''
         self.stat = path_obj.stat() 
+        self.ffmpeg_creation = None
 
     def __repr__(self):
         return '{}'.format(self.path_obj.name)
@@ -89,7 +91,7 @@ def compare_media(args, posix_path, media_items):
         # Google registers webm as mp4, adjusting here
         if media_on_disk.mime_type in ['video/webm', 'video/x-matroska']:
 
-            logging.info(''' | Comparing {:<20} to G's video/mp4 | {}'''.format(
+            logging.info('''| Comparing {:<20} to G's video/mp4 | {}'''.format(
                 media_on_disk.mime_type, media_on_disk))
 
             media_on_disk.mime_type = 'video/mp4'
@@ -97,7 +99,7 @@ def compare_media(args, posix_path, media_items):
         if not media_on_disk.mime_type and \
                 media_on_disk.path_obj.suffix == '.m4v':
 
-            logging.info(''' | Comparing {:<20} to G's video/mp4 | {}'''.format(
+            logging.info('''| Comparing {:<20} to G's video/mp4 | {}'''.format(
                 '.m4v', media_on_disk))
 
             media_on_disk.mime_type = 'video/mp4'
@@ -111,7 +113,17 @@ def compare_media(args, posix_path, media_items):
             labeled = get_labeled_exif(exif)
             media_on_disk.exif_datetime = labeled.get('DateTime', '')
             logging.debug(media_on_disk.exif_datetime)
-
+        
+        # get ffmpeg_creation
+        try:
+            ff = ffmpeg.probe(posix_path)
+            ct = ff['format']['tags']['creation_time']
+            aa = arrow.get(ct).datetime
+            media_on_disk.ffmpeg_creation = aa
+        except Exception as e:
+            # if this fails okay, move on
+            logging.debug(e)
+            pass
 
         logging.debug('media_on_disk:{}, exif_datetime:{}, st_ctime:{}'.format(media_on_disk, media_on_disk.exif_datetime, media_on_disk.st_ctime))
 
@@ -124,8 +136,14 @@ def compare_media(args, posix_path, media_items):
                 logging.debug("media mime on disk: {}, media mime in cloud: {}".format(media_on_disk.mime_type, mi.mimetype))
                 if media_on_disk.mime_type == mi.mimetype:
                     logging.debug('2: Found mimetype (media on disk) match: {}'.format(media_on_disk.mime_type))
-                    if mi.creation_ts == media_on_disk.exif_ts(args.tz):
-                        logging.debug('3: timestamps match {}: {}'.format(mi.media_metadata_creation_time, media_on_disk.exif_datetime))
+                    # if either exif or ffmpeg creation time match
+                    if mi.creation_ts in [media_on_disk.exif_ts(args.tz),
+                                media_on_disk.ffmpeg_creation]:
+                        logging.debug('3: timestamps match G{}: exif:{} ffmpeg:{}'.format(
+                                mi.media_metadata_creation_time,
+                                media_on_disk.exif_datetime,
+                                media_on_disk.ffmpeg_creation,
+                                ))
                         media_match = True
 
                         logging.debug('Yes match, no upload: album, filename, mime, timestamp: {}'.format(args.photos[0]))
@@ -138,13 +156,22 @@ def compare_media(args, posix_path, media_items):
                         logging.debug('str: Timestamp st_atime from media on disk: {}'.format(media_on_disk.st_atime))
                         logging.debug('str: Timestamp st_mtime from media on disk: {}'.format(media_on_disk.st_mtime))
                         logging.debug('Timestamp st_atime from media on disk: {}'.format(media_on_disk.st_atime_ts))
+                    # if no match above, then let's look at st_atime and compare with Google's timestamp 
                     elif args.minutes != 0:
                         logging.debug('--min  {}'.format(args.minutes))
+
+                        # Let's at least require that at least exif or ffmpeg ts is missing, to continue
+                        missing_ts = False
                         if not media_on_disk.exif_ts(args.tz):
+                            missing_ts = True
+                        if not media_on_disk.ffmpeg_creation:
+                            missing_ts = True
+
+                        if missing_ts:
                             min_delta = timedelta(minutes=args.minutes)
                             logging.debug('min_delta: {}'.format(min_delta))
                             logging.debug('time delta: {}'.format(media_on_disk.st_atime_ts - mi.creation_ts))
-                            ts_diff =media_on_disk.st_atime_ts - mi.creation_ts
+                            ts_diff = media_on_disk.st_atime_ts - mi.creation_ts
                             if ts_diff < min_delta:
                                 logging.debug('Woo! Hoo!')
                                 logging.debug('|timestamp ok '

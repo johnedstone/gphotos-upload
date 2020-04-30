@@ -32,9 +32,8 @@ def parse_args(arg_input=None):
         This will be used when exif not available, as google uses the st_atime for it's
         creation time when exif is not available.
         
-        On NAS, even ro, seem to update st_atime, when uploading.  This program, will  update st_atime (and st_ctime)
-        upon a successful upload and placement into an album, to help figure out with google if an item
-        needs to be sync'd.
+        Uploading from NAS: in some cases, permissions might not allow updating access time (st_atime),
+        and a non-critical error is displayed.  Updating st_atime is only used for comparing timestamps.
 
            ''')) 
 

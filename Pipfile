@@ -8,5 +8,6 @@ google-auth-oauthlib = "*"
 dateutils = "*"
 arrow = "*"
 pillow = "*"
+ffmpeg-python = "*"
 
 [dev-packages]
