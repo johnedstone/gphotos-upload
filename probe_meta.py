@@ -125,7 +125,9 @@ def compare_media(args, posix_path, media_items):
             logging.debug(e)
             pass
 
-        logging.debug('media_on_disk:{}, exif_datetime:{}, st_ctime:{}'.format(media_on_disk, media_on_disk.exif_datetime, media_on_disk.st_ctime))
+        logging.debug('media_on_disk:{}, exif:{}, st_atime:{}, ffmpeg:{}'.format(
+            media_on_disk, media_on_disk.exif_datetime, media_on_disk.st_atime,
+            media_on_disk.ffmpeg_creation))
 
         # Album contents
         logging.debug('Album contents: {}'.format([(x.filename, x.mimetype, x.media_metadata_creation_time) for x in media_items]))
@@ -198,6 +200,7 @@ def compare_media(args, posix_path, media_items):
                             logging.debug('Timestamp, reformatted, from google: {}'.format(mi.creation_ts))
                             logging.debug('str: Timestamp (exif) from media on disk: {}'.format(media_on_disk.exif_datetime))
                             logging.debug('Timestamp (exif), reformatted from media on disk: {}'.format(media_on_disk.exif_ts(args.tz)))
+                            logging.debug('Timestamp (ffmpeg) from media on disk: {}'.format(media_on_disk.ffmpeg_creation))
 
                     else:
                         logging.debug('No match, upload: filename:ok, mimetype:ok, timestamp:not_okay: {}'.format(args.photos[0]))
@@ -205,6 +208,7 @@ def compare_media(args, posix_path, media_items):
                         # Used for debugging
                         logging.debug('Timestamp from google: {}'.format(mi.media_metadata_creation_time))
                         logging.debug('Timestamp (exif) from media on disk: {}'.format(media_on_disk.exif_datetime))
+                        logging.debug('Timestamp (ffmpeg) from media on disk: {}'.format(media_on_disk.ffmpeg_creation))
                         logging.debug('Timestamp st_ctime from media on disk: {}'.format(media_on_disk.st_ctime))
                         logging.debug('Timestamp st_atime from media on disk: {}'.format(media_on_disk.st_atime))
                         logging.debug('Timestamp st_mtime from media on disk: {}'.format(media_on_disk.st_mtime))
