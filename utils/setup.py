@@ -13,15 +13,13 @@ def parse_args(arg_input=None):
             description=textwrap.dedent('''\
     Upload photos and videos to Google Photos. And, add to an album created by this API.
 
-        To do: fix for when the number of media_items in album > 50
-
         Windows paths should be like this: 'z:/path/to/some/file_or_dir'
         No wildcards like 'z:/path/*' in Windows.
         Use quotes, to prevent Windows from mangling, in most cases
 
         Note: treating album names as case insensitive
 
-        Note: API only uploads to albums created by API
+        Note: Google's API only uploads to albums created by API
 
         Note: images exif timestamps do not have TZ.  Google assumes/uses UTC.
         --tz will help compare the exif if you know that the TZ is not UTC.
@@ -29,11 +27,12 @@ def parse_args(arg_input=None):
 
         Note: st_atime is updated, at the time of upload, to help with timestamp comparison.
         That is, when a file is uploaded, the access time will be updated.
-        This will be used when exif not available, as google uses the st_atime for it's
-        creation time when exif is not available.
+        This will be used when exif or ffmpeg creation time is not available,
+        as google uses the st_atime for it's creation time when neither are available.
         
         Uploading from NAS: in some cases, permissions might not allow updating access time (st_atime),
-        and a non-critical error is displayed.  Updating st_atime is only used for comparing timestamps.
+        resulting in a non-critical error.  Non-critical, in that updating st_atime
+        is only used for comparing timestamps later.
 
            ''')) 
 

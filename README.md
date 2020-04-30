@@ -31,13 +31,11 @@ An example would be `/path/to/file /path/to/* /path/to/dir`
 ## Usage, revised
 
 ```
-usage: upload.py [-h] [--auth  auth_file] -c CREDENTIALS --album album_name [--log log_file] [--tz time_zone] [--dry-run] [--test-stat-times] [--debug] [--recurse {none,once,all}]
+usage: upload.py [-h] [--auth  auth_file] -c CREDENTIALS --album album_name [--log log_file] [--tz time_zone] [--dry-run] [--skip-compare] [--test-stat-times] [--debug] [--recurse {none,once,all}]
                  [-e [exclude [exclude ...]]] [-m minutes]
                  [photo [photo ...]]
 
 Upload photos and videos to Google Photos. And, add to an album created by this API.
-
-    To do: fix for when the number of media_items in album > 50
 
     Windows paths should be like this: 'z:/path/to/some/file_or_dir'
     No wildcards like 'z:/path/*' in Windows.
@@ -45,7 +43,7 @@ Upload photos and videos to Google Photos. And, add to an album created by this 
 
     Note: treating album names as case insensitive
 
-    Note: API only uploads to albums created by API
+    Note: Google's API only uploads to albums created by API
 
     Note: images exif timestamps do not have TZ.  Google assumes/uses UTC.
     --tz will help compare the exif if you know that the TZ is not UTC.
@@ -53,12 +51,12 @@ Upload photos and videos to Google Photos. And, add to an album created by this 
 
     Note: st_atime is updated, at the time of upload, to help with timestamp comparison.
     That is, when a file is uploaded, the access time will be updated.
-    This will be used when exif not available, as google uses the st_atime for it's
-    creation time when exif is not available.
+    This will be used when exif or ffmpeg creation time is not available,
+    as google uses the st_atime for it's creation time when neither are available.
 
-    On NAS, even ro, seem to update st_atime, when uploading.  This program, will  update st_atime (and st_ctime)
-    upon a successful upload and placement into an album, to help figure out with google if an item
-    needs to be sync'd.
+    Uploading from NAS: in some cases, permissions might not allow updating access time (st_atime),
+    resulting in a non-critical error.  Non-critical, in that updating st_atime
+    is only used for comparing timestamps later.
 
 positional arguments:
   photo                 List of filenames or directories of photos and videos to upload. Quote Windows path, to be safe: 'z:/path/to/file'. Note: Windows does not handle wildcards such as
@@ -73,6 +71,7 @@ optional arguments:
   --log log_file        Name of output file for log messages
   --tz time_zone        If you suspect your exif timestamp is lacking a time zone, you can give it here, e.g. America/New_York. The default is Europe/London
   --dry-run             Prints photo file list and exits
+  --skip-compare        Skip comparing filename, mime_time, exif and timestamp. Just upload
   --test-stat-times     Prints photo file list and checks to see if files would be updated based on timestamp, so --min adjustments can be made
   --debug               turn on debug logging
   --recurse {none,once,all}
