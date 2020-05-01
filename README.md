@@ -22,6 +22,7 @@ Implemented chunked data for all uploads.
     * conda install arrow
     * conda install -c conda-forge filetype
     * conda install filetype
+    * conda install -c conda-forge ffmpeg
 * Since path name expansion with wildcards is not available on Windows,
 only filenames and/or a directories are acceptable, when using upload.py
 on Windows.  An example would be `z:/path/to/file z:/path/to/dir`

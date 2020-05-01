@@ -116,7 +116,7 @@ def compare_media(args, posix_path, media_items):
         
         # get ffmpeg_creation
         try:
-            ff = ffmpeg.probe(posix_path)
+            ff = ffmpeg.probe(posix_path.as_posix())
             ct = ff['format']['tags']['creation_time']
             aa = arrow.get(ct).datetime
             media_on_disk.ffmpeg_creation = aa
