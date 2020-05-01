@@ -125,9 +125,9 @@ def upload_photos(session, photo_file_list, args):
                         # Windows: Changed: st_atime, Unchanged: st_mtime and st_ctime
                         try:
                             fn_stat = os.stat(photo_file_name)
-                            logging.info('stat before {}'.format(fn_stat))
+                            logging.debug('stat before {}'.format(fn_stat))
                             os.utime(photo_file_name, (datetime.now().timestamp(), fn_stat.st_mtime))
-                            logging.info('stat after {}'.format(os.stat(photo_file_name)))
+                            logging.debug('stat after {}'.format(os.stat(photo_file_name)))
                         except Exception as e:
                             logging.info('|Setting access time: {} | Not critical, used for comparing access times'.format(e))
                         finally:
